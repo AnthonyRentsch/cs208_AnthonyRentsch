@@ -169,39 +169,24 @@ dev.off()
 # set parameters
 k.attributes <- seq(0, 10000, by=50)
 null.sims <- 1000
-optimal_defense_params <- list(round=100, noise=83, subsample=9)
+optimal_defense_params <- list(round=100, noise=83, subsample=5)
 alpha <- 0.001
-P <- 131
-
-# convert all attributes into binary (value above or below mean for age, income, and education)
-pums_full_binary <- pums_full %>% mutate(age = ifelse(age > mean(age), 1, 0),
-                                         income = ifelse(income > mean(income), 1, 0),
-                                         educ = ifelse(educ > mean(educ), 1, 0))
-pums_100_binary <- pums_100 %>% mutate(age = ifelse(age > mean(pums_full_binary$age), 1, 0),
-                                         income = ifelse(income > mean(pums_full_binary$income), 1, 0),
-                                         educ = ifelse(educ > mean(pums_full_binary$educ), 1, 0))
+P <- 197
 
 # generate matrix with each column being a vector of random values
-rand_matrix <- replicate(10000-14, sample(x=(0:P-1), size=14)) %>%  data.matrix()
+rand_matrix <- replicate(10000, sample(x=(0:P-1), size=14)) %>%  data.matrix()
+
 # get random predicates as new attributes for ...
 # ... PUMS 100
-pums_100_matrix <- pums_100_binary %>% select(-state,-puma,-uscitizen,-fips) %>% data.matrix()
-rand_pums_100_attributes <- ((pums_100_matrix %*% rand_matrix) %% P) %% 2
-rand_pums_100_attributes_df <- data.frame(rand_pums_100_attributes)
-pums_100_new <- cbind(pums_100_binary %>% select(-state,-puma,-uscitizen,-fips), 
-                       rand_pums_100_attributes_df)
-pums_100_new <- data.matrix(pums_100_new)
+pums_100_matrix <- pums_100 %>% select(-state,-puma,-uscitizen,-fips) %>% data.matrix()
+pums_100_new <- ((pums_100_matrix %*% rand_matrix) %% P) %% 2
   
 # ... PUMS full
-pums_full_matrix <- pums_full_binary %>% select(-state,-puma,-uscitizen,-fips) %>% data.matrix()
-rand_pums_full_attributes <- ((pums_full_matrix %*% rand_matrix) %% P) %% 2
-rand_pums_full_attributes_df <- data.frame(rand_pums_full_attributes)
-pums_full_new <- cbind(pums_full_binary %>% select(-state,-puma,-uscitizen,-fips), 
-                       rand_pums_full_attributes_df)
-pums_full_new <- data.matrix(pums_full_new)
+pums_full_matrix <- pums_full %>% select(-state,-puma,-uscitizen,-fips) %>% data.matrix()
+pums_full_new <- ((pums_full_matrix %*% rand_matrix) %% P) %% 2
 
-# get population means
-population_probs <- colMeans(pums_full_new)
+# since I'm using derived attributes, population probs are all 0.5 and rescaled means are 0
+population_probs <- rep(0.5, 10000) 
 population_means <- 2*(population_probs-0.5)
 
 ### functions ##
@@ -276,13 +261,15 @@ ind <- 1
 
 for(k in k.attributes){
   for(defense in c("round","noise","subsample")) {
-    # Checkpoint
+    # checkpoint
     print(paste0(defense, " ", k))
     
     # access appropriate noisy sample means
-    if(defense=="round") { sample_means <- sample_means_round }
-    else if(defense=="noise") { sample_means <- sample_means_noise }
-    else if(defense=="subsample") { sample_means <- sample_means_subsample }
+    # if(defense=="round") { sample_means <- sample_means_round }
+    # else if(defense=="noise") { sample_means <- sample_means_noise }
+    # else if(defense=="subsample") { sample_means <- sample_means_subsample }
+    sample_means <- membershipQuery(pums_100_new, defense=defense, 
+                                    defense_parameter=optimal_defense_params[defense][[1]])
     
     # get critical value
     nullDist <- nullDistribution(alpha=alpha,
@@ -323,7 +310,7 @@ write.csv(membership_history_df, file="membership_history.csv")
 # plot results
 q3_plot <- ggplot(membership_history_df, aes(num_attributes, tpr)) + 
   geom_point() +
-  facet_wrap(~defense) +
+  facet_wrap(~defense, scales = "free") +
   labs(x="Number of attributes", y="True positive rate") + theme_bw()
 pdf("q3_plot.pdf", width=8, height=8)
 q3_plot
