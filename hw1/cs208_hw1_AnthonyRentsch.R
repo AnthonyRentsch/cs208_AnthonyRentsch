@@ -18,7 +18,7 @@ grouped_pums_full <- pums_full %>% group_by(puma, sex, asian, black, latino, age
   summarise(n = n())
 
 q1_plot <- ggplot(grouped_pums_full) + geom_histogram(aes(n)) + 
-  labs(x="(Sex x age x race x PUMA region) group size in PUMS data", y = "") +
+  labs(x="(Sex x age x race x PUMA region) group size in PUMS data", y = "Count") +
   theme_bw()
 pdf("q1_plot.pdf", width=8, height=8)
 q1_plot

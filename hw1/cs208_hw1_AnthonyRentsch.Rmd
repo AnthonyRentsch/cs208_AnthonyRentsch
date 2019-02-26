@@ -12,57 +12,57 @@ For this assignment, I collaborated with Bhaven Patel and Lipika Ramaswamy. Find
 
 Similar to Latanya Sweeney's original attack, I would use the Georgia state voter file to attempt to re-identify individuals in the 2010 Census PUMS dataset for Georgia. As a result of the Voting Rights Act of 1965, several states - including Georgia - began asking people to self-report their race when filling out voter registration forms. Thus the statewide Georgia voter file, which costs just $250, could be used to conduct an attack on the PUMS dataset with race, gender, age, and PUMA region (derived from address) as available quasi-identifiers.
 
-When we have these four attributes at our disposal, we are able to uniquely identify 2.3% of the individuals in the PUMS data. Furthermore, roughly 7% of individuals in the sample share their combination of sex, race, age, and PUMA region with less than 10 other people. 
+When we have these four attributes at our disposal, we are able to uniquely identify 2.3% of the individuals in the PUMS data. Note that this is much lower than the number of people that Sweeney was able to re-identify since she had access to each individual's exact birthdate, not just their age. Furthermore, roughly 7% of individuals in the sample share their combination of sex, race, age, and PUMA region with less than 10 other people; if we had slightly more auxiliary data we might have a reasonable chance to identify these people, too. 
 
 \begin{center}
-\includegraphics[width=4in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q1_plot.pdf}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q1_plot.pdf}
 \end{center}
 
 
 ## Question 2
 
-The plot below shows the relationship between the defense parameter ($R$ for rounding, $\epsilon$ for noise, and $T$ for subsampling) and the average re-identification accuracy for 10 experiments run at each parameter value. In general, we observe that re-identification accuracy goes up when privacy is worse, which is the expected behavior. As we increase the standard deviation of the added Gaussian noise the accuracy goes down and as we increase the number of people we subsample the re-identification accuracy goes up, as expected. For rounding there is a spike in the re-identification accuracy rate around 50, which makes sense because 96% of the 100-person sample are U.S. citizens and when we randomly subsample roughly 50 people the expected value of the query is approximately 50. 
+The first plot below shows the relationship between the defense parameter ($R$ for rounding, $\epsilon$ for noise, and $T$ for subsampling) and the average re-identification accuracy for 10 experimental regression attacks run at each parameter value. In general, we observe that re-identification accuracy goes up when privacy is worse, which is the expected behavior. As we increase the standard deviation of the added Gaussian noise the accuracy goes down and as we increase the number of people we subsample the re-identification accuracy goes up, as expected. For rounding there is a seemingly out-of-place spike in the re-identification accuracy rate around 50. Upon further inspection, this spike makes sense because 96% of the 100-person sample are U.S. citizens, so when our query randomly samples roughly 50 people the expected value of the query is approximately 50. 
 
-Also note that the attack would generally fail at 50% accuracy, which occurs at (roughly) $R=100$, $T=1$, and $\epsilon=83$. I've added additional data points around these values, i.e., the results from all of the individual experiments within 5 parameter values of this point.
+Also note that, since the attack would fail at 50% accuracy, we can set defense parameters at $R=100$, $T=5$, and $\epsilon=100$. I've added additional data points around these values, i.e., the results from all of the individual experiments within 5 parameter values of this point.
+
+For the noise injection defense, it appears that the attack fails for a slightly lower value of $\epsilon$ but I choose 100 as the optimal value for Question 3 to test the effect of injecting the most noise possible under the problem constraints. For the subsampling defense, while I find $T=1$ to be approximately the optimal parameter to thwart the regression attack, I choose $T=5$ to use moving forward so that I can examine what happens when we subsample at least a few people and not just one person.
 
 \begin{center}
-\includegraphics[width=4in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_acc.pdf}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_acc.pdf}
 \end{center}
 
-The next plot shows the relationship between the defense parameter and the utility of the query, as measured by the root mean squared error between the actual and query mechanism result. We see that larger values of $R$ for the rounding defense lead to larger RMSE values (except for the earlier explained bump at 50), larger values of $\epsilon$ for the noise defense lead to larger RMSE values, and larger values of $T$ for the subsampling defense lead to lower RMSE values.
+The next plot shows the relationship between the defense parameter and the utility of the query, as measured by the root mean squared error between the actual answer to the query and query mechanism result. We see that larger values of $R$ for the rounding defense lead to larger RMSE values (except for the previously explained bump at 50), larger values of $\epsilon$ for the noise defense lead to larger RMSE values, and larger values of $T$ for the subsampling defense lead to lower RMSE values.
 
 \begin{center}
-\includegraphics[width=4in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_rmse.pdf}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_rmse.pdf}
 \end{center}
 
-Comparing the privacy-utility tradeoff directly, we see that there is an approximately exponential decay: as we shed privacy we see huge improvements in accuracy, but those the size of those improvements tends to decrease as we approach near perfect re-identification accuracy. Again, the curve for rounding appears a bit strange, but this is a reflection of the idiosyncratic nature of the query's behavior around 50, i.e., rounding to the nearest multiple of 50 a sum with an expected value of 50 leads to high accuracy. 
+Comparing the privacy-utility tradeoff directly, we see that there is an approximately exponential decay in RMSE as the re-identification accuracy increases. In other words, as we shed privacy we see huge improvements in accuracy, but the size of those improvements tends to decrease as we approach near perfect re-identification accuracy. Again, the curve for rounding appears a bit strange, but this is a reflection of the idiosyncratic nature of the query's behavior around 50, i.e., rounding to the nearest multiple of 50 a sum with an expected value of 50 leads to low RMSE even when re-identification accuracy is relatively low.
 
 \begin{center}
-\includegraphics[width=4in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_rmse_acc.pdf}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q2_plot_rmse_acc.pdf}
 \end{center}
 
 
 ## Question 3
 
-We would expect membership attacks to be successful even when reconstruction attacks are unsuccessful. Membership attacks should approach true positive rates of 100% as the number of attributes released approaches $n^2$. In the plots below, I show the relationship between the membership attack true positive rate and the number of attributes released for the three different defense mechanisms we consider. As a reminder, I found the optimal values of the parameters to be: $R=100$, $\epsilon=83$, and $T=1$ (here I consider $T=9$ because my plot for $T=1$ was uninteresting).
+We would expect membership attacks to be successful even when reconstruction attacks are unsuccessful. In the plots below I depict the relationship between the number of attributes an adversary can query from a dataset and the true positive rate of a membership attack (conducted using the Dwork test statistic and rescaling population and sample means to live in $[-1,1]$). Additionally, note that I only allow the adversary to query the derived attributes of the dataset, which are formed by the hashing process used in Question 2. The defense parameters I use are: $R=100$, $\epsilon=100$, and $T=5$. 
 
--$\sqrt{d}/n$?
--Dwork test stat --> rscaled to -1, 1
--using only derived attributes now and expected column means of 0.5 (rescaled to 0)
--what do i see
--maybe make a plot for what i think are right values but look bad versus plots that look good but use values that I'm not sure are right (accuracy around 92% - US citizenship rate in population)
+For both the noise injection and rounding defenses, the membership attack reaches near perfect true positive rates after the release of only about 2,200 and 4,200 attributes, respectively. This means that these defenses cannot hold off membership attacks when up to $n^2$ attributes are released, as we saw in lecture. For subsampling, however, the membership attack's performance plateaus at roughly $T/n$ and does not change as we increase the number of attributes released. Based on this analysis, subsampling is the best defense against a membership attack and, referring back to the first plot in Question 2, subsampling with a small value of $T$ (for example, $T<10$) still provides strong utility.
 
 \begin{center}
-\includegraphics[width=4in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q3_plot.pdf}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw1/q3_plot.pdf}
 \end{center}
 
 
 ## Question 4
+
 Bhaven Patel and I will be working together for the final project. We are interested in implementing an attack on a real-life dataset that contains some potentially sensitive information, especially datasets from the social and life sciences (i.e., medical records, political surveys). After implementing an attack, we would formulate a strategy for a differentially private algorithm/mechanism that could be used to preserve individual privacy while also enabling researchers to gain utility for different use cases, including descriptive queries and inferential/predictive modeling. Specifically, we would be interested in seeing how a differentially private algorithm affects the performance of machine learning models. We would also be interested in examining how a differentially private algorithm could be implemented in a publicly available application that provides useful diagnostic information; for instance, we could use the City of Boston’s public 311 service requests or Field Interrogation and Observation data (similar to stop-and-frisk data) to provide updates on the current safety/well-being of different neighborhoods, while limiting any privacy loss.
+
 
 ## Appendix
 
-I put code snippets for all of my analyses here.
+I put the code for all of my analyses here. You can also find it on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw1).
 
 ### Question 1
 ```
@@ -144,7 +144,8 @@ for(defense_type in c("round","noise","subsample")) {
         used_inds <- ((adversary_data_matrix %*% r_vec) %% P) %% 2
         
         # perform query
-        res <- query(random_vector=r_vec, data=pums_100, defense=defense_type, defense_parameter=param_value) 
+        res <- query(random_vector=r_vec, data=pums_100, defense=defense_type,
+                     defense_parameter=param_value) 
         # append sum and inds to matrix of results
         results[trial,] <- c(res$sum_defended, used_inds)   
         # save actual results in a vector
@@ -176,9 +177,12 @@ attack_avg_perf <- attack_performance %>% group_by(defense, param_value) %>%
   summarise(mean_acc = mean(accuracy), mean_rmse = mean(rmse))
 
 # create df with extra data points around transition
-extra_points <- attack_performance[(attack_performance$defense=="round" & attack_performance$param_value%in%95:100) | 
-                                     (attack_performance$defense=="noise" & attack_performance$param_value%in%80:85) |
-                                     (attack_performance$defense=="subsample" & attack_performance$param_value%in%1:5),
+extra_points <- attack_performance[(attack_performance$defense=="round" &
+                                   attack_performance$param_value%in%95:100) | 
+                                   (attack_performance$defense=="noise" &
+                                   attack_performance$param_value%in%80:85) |
+                                   (attack_performance$defense=="subsample" &
+                                   attack_performance$param_value%in%1:5),
                                    c("defense","param_value","accuracy","rmse")]
 names(extra_points) <- c("defense","param_value","mean_acc","mean_rmse")
 attack_avg_perf_w_extra_points <- dplyr::bind_rows(attack_avg_perf, extra_points)
@@ -217,7 +221,7 @@ dev.off()
 # set parameters
 k.attributes <- seq(0, 10000, by=50)
 null.sims <- 1000
-optimal_defense_params <- list(round=100, noise=83, subsample=5)
+optimal_defense_params <- list(round=100, noise=100, subsample=5)
 alpha <- 0.001
 P <- 197
 
