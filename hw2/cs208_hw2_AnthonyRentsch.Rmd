@@ -8,3 +8,22 @@ urlcolor: blue
 
 ## Question 1
 
+Write out all proofs in LaTex here. 
+
+## Question 2
+
+For a,b,c see code in Appendix. 
+Put plot for c in line. Optimal b: 19.
+
+*(d)* 
+-protecting outliers
+-why doesn't bootstrap do this
+
+*(e)*
+-propose new mechanism
+
+
+## Question 3
+
+
+
