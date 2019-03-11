@@ -2,6 +2,7 @@
 # Anthony Rentsch
 
 # Set up
+rm(list = ls())
 require(plyr); require(dplyr); require(ggplot2)
 
 # a
@@ -25,7 +26,7 @@ clip <- function(x, lower, upper){     # function borrowed from class
   return(x.clipped)	
 }
 
-laplaceClampRelease <- function(x, epsilon, a=0, b=1){
+laplaceClampMeanRelease <- function(x, epsilon, a=0, b=1){
   n <- length(x)
   sensitivity <- (a - b)/n
   scale <- sensitivity / epsilon
@@ -52,7 +53,7 @@ i = 1
 for (b in b_vals){
   dat <- poissonDGP(n)
   for (j in 1:n_sims){
-    DPrelease <- laplaceClampRelease(dat, epsilon, a=0, b=b)
+    DPrelease <- laplaceClampMeanRelease(dat, epsilon, a=0, b=b)
     results[i,1] <- b
     results[i,2] <- j
     results[i,3] <- DPrelease$release
@@ -68,7 +69,10 @@ q2_plot <- ggplot(data=avg_results_df, aes(x=b, y=rmse)) +
   geom_point() + geom_hline(yintercept = min(avg_results_df$rmse), col="red", lty=2) +
   geom_vline(xintercept = avg_results_df[which.min(avg_results_df$rmse), ]$b, col="red", lty=2) +
   labs(x="Upper bound", y="RMSE") + theme_bw()
+pdf("plots/q2_plot.pdf", width=5, height=5)
 q2_plot
+dev.off()
+
 
 
 
