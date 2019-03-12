@@ -3,6 +3,7 @@
 
 # Set up
 rm(list = ls())
+setwd("~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/")
 require(plyr); require(dplyr); require(ggplot2)
 
 # a
@@ -69,7 +70,7 @@ q2_plot <- ggplot(data=avg_results_df, aes(x=b, y=rmse)) +
   geom_point() + geom_hline(yintercept = min(avg_results_df$rmse), col="red", lty=2) +
   geom_vline(xintercept = avg_results_df[which.min(avg_results_df$rmse), ]$b, col="red", lty=2) +
   labs(x="Upper bound", y="RMSE") + theme_bw()
-pdf("plots/q2_plot.pdf", width=5, height=5)
+pdf("plots/q2_plot.pdf", width=8, height=8)
 q2_plot
 dev.off()
 

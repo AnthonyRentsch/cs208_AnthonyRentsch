@@ -3,6 +3,7 @@
 
 # Set up
 rm(list = ls())
+setwd("~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/")
 require(plyr); require(dplyr); require(ggplot2)
 
 # a
@@ -103,7 +104,7 @@ q3_plot1 <- ggplot(data=avg_results_y_df, aes(x=b, y=rmse)) +
   geom_point() + geom_hline(yintercept = min(avg_results_y_df$rmse), col="red", lty=2) +
   geom_vline(xintercept = avg_results_y_df[which.min(avg_results_y_df$rmse), ]$b, col="red", lty=2) +
   labs(x="Upper bound for y", y="RMSE") + theme_bw()
-pdf("plots/q3_plot1.pdf", width=5, height=5)
+pdf("plots/q3_plot1.pdf", width=8, height=8)
 q3_plot1
 dev.off()
 
@@ -137,7 +138,7 @@ q3_plot2 <- ggplot(data=results_reg_df) +
   labs(x="Mean Squared residuals", y="") + theme_bw() + 
   scale_fill_manual(values=c(semi.blue, semi.red)) +
   theme(legend.position="bottom", legend.title=element_blank())
-pdf("plots/q3_plot2.pdf", width=5, height=5)
+pdf("plots/q3_plot2.pdf", width=8, height=8)
 q3_plot2
 dev.off()
 
