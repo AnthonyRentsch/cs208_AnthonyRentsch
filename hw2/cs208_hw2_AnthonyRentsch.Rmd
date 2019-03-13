@@ -6,6 +6,8 @@ output: pdf_document
 urlcolor: blue
 ---
 
+**Note**: I include the code I wrote directly in line for some questions, such as for 2 *(a)* and *(b)* which are purely implementation problems. For other questions, my code can be found in the Appendix and on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw2). 
+
 ## Question 1
 
 *(a)* Both (i) and (iv) are ($\epsilon$, 0)-differentially private. I demonstrate that below using two neighboring datasets, $x = [0,0,...,0]$ and $x' = [0,0,...,1]$.
@@ -112,7 +114,7 @@ Thus, this mechanism is $(\epsilon, \delta)$-differentially-private for $\delta 
 poissonDGP <- function(n){ return(rpois(n, lambda=10)) }
 ```
 
-*(b)* I use the first mechanism from Question 1 to answer this question.
+*(b)* I use the first mechanism from Question 1 to answer this question. From here on out I'll refer to it as the clamped Laplace mean release mechanism.
 ```
 sgn <- function(x) {     # function borrowed from class
   return(ifelse(x < 0, -1, 1))
@@ -146,7 +148,9 @@ laplaceClampMeanRelease <- function(x, epsilon, a=0, b=1){
 }
 ```
 
-*(c)* Find the code for this portion of the problem in the Appendix. Based on my analysis, the optimal value for the upper bound b - i.e., the one that minimizes RMSE - is 19. I will use that value for the remiander of this problem and for Question 3.
+*(c)* I run 100 Monte Carlo simulations per upper bound value. In each simulation I draw 200 samples randomly drawn from a Poisson distribution and compute a noisy mean using the clamped Laplace mean mechanism. Then, I compare the root mean squared error between the true and noisy means for each upper bound value and plot these for every upper bound value. This is shown in the plot below.
+
+Based on my analysis, the optimal value for the upper bound b - i.e., the one that minimizes RMSE - is 19. I will use that value for the remiander of this problem and for Question 3.
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/plots/q2_plot.pdf}
@@ -166,21 +170,25 @@ laplaceClampMeanRelease <- function(x, epsilon, a=0, b=1){
 
 ## Question 3
 
-*(a)* 
--4 DP subroutines: $S_{xy}$, $S_{xx}$, $\bar{x}$, and $\bar{y}$ and so we split epsilon over these (2 mean release and one regression coefccicient release)
--how to clamp y? --> run same code as in 2, but generate poisson, plug that into noisy linear, and then find lowest rmse for some values of an upper bound for y
------- 17 is the value I find
+*(a)* I break up the regression coefficient and intercept release mechanism into four differentially private subroutines. We showed in class that simply computing a differentially private version of the coefficient directly would be useless because the global sensitivty approaches $\infty$. 
+
+First, I know that I can write the coefficient of the regression as $\frac{S_{xy}}{S_{xx}}$. Thus, computing a differentially private version of the coefficient requires two subroutines: one for $S_{xy}$ and another for $S_{xx}$. Next, to calculate the intercept, I can use the formula $\hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}$. Since our $\beta$ is now differentially private, we can use the post-processing property to use it in this calculation with no extra privacy loss. However, we also need to compute a differentially private version of $\bar{x}$, and $\bar{y}$. To do this, I'll use the clamped Laplace mean release mechanism.
+
+Furthermore, I will clamp both $x$ and $y$ as a part of this regression release mechanism. In Question 2 I found 19 to be a good upper bound value for $x$, and I'll continue to use that here. To get a good upper bound for $y$, I repeated the same process that I used for $x$ but will also feed the data randomly drawn from a Poisson distribution into the noisy linear function and find the best upper bound for $y$ that reduces the RMSE between the actual and noisy y values from the clamped Laplace mean release mechanism. As shown in the plot below, I find that 17 is the optimal upper bound for $y$.
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/plots/q3_plot1.pdf}
 \end{center}
 
-*(b)*
--should true parameters be computed from clipped data?
+*(b)* I generate 1,000 different datasets, perform my regression release on each dataset (splitting my budget evenly across the four subroutines), and then compare the performance of my noisy regression parameters to the performance of the true regression parameters by computing the mean-squared residuals for the original data. Here I consider the true regression to be the one computed on the clipped data so that my comparison focuses specifically on the effect of the added noise and not on the clipping procedure.
+
+The plot below shows the distributions of the mean-squared residuals for the private and non-private regressions (the plot shows kernel density estimates). In general, the distribution of the mean-squared residuals for the private regression has much longer tail, implying that this approach has a larger expected error and could potentially lead to an enormous, utility-diminshing amount of error.
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/plots/q3_plot2.pdf}
 \end{center}
+
+*(c)* Now I run a grid search to attempt to identify a better partitioning of the privacy budget that leads to lower error. To set up my grid, I consider weights for each statistic ranging from 0.1 to 0.9 by steps of 0.1. I then apply a softmax function to ensure that each partition of epsilon adds up to 1 - the total privacy budget for this problem. In total, I consider 6,561 partitions, although some are redundant. 
 
 ## Question 4
 
@@ -192,9 +200,8 @@ $$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n}$$
 
 By the definition of $(\epsilon, \delta)$-differential privacy, we have
 
-$$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n} \leq \frac{\Sigma_{i=1}^nexp(\epsilon)P[A(M(*,X_{-i})) = X_i]}{n} + \delta$$
+$$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n} \leq \frac{\Sigma_{i=1}^nexp(\epsilon)P[A(M(0,X_{-i})) = X_i]}{n} + \delta$$
 
-where $*$ is either $0$ or $1$, depending on whether $0$ or $1$ is the most common value in the dataset.
 
 - average of indicator functions?
 

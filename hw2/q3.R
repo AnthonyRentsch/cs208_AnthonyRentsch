@@ -111,14 +111,14 @@ dev.off()
 # b
 equal_partition <- list(Sxy=0.25, Sxx=0.25, x.bar=0.25, y.bar=0.25)
 n = 1000
-alpha = beta = eplison = sd = 1
+alpha = beta = epsilon = sd = 1
 n_sims = 1000
 
 results_reg <- matrix(NA, nrow=n_sims, ncol=6)
 for (i in 1:n_sims){
   x <- poissonDGP(n)
   y <- noisyLinearDGP(dat, n, alpha=1, beta=1, mu=0, sd=1)
-  DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, eplsilon, equal_partition)
+  DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, epsilon, equal_partition)
   results_reg[i,1] <- DPrelease$release.beta
   results_reg[i,2] <- DPrelease$release.alpha
   results_reg[i,3] <- DPrelease$true.beta
@@ -141,6 +141,38 @@ q3_plot2 <- ggplot(data=results_reg_df) +
 pdf("plots/q3_plot2.pdf", width=8, height=8)
 q3_plot2
 dev.off()
+
+# c
+# set up grid
+softmax <- function(x) {
+  return(exp(x)/sum(exp(x)))
+}
+weights = seq(0.1,0.9,by=0.1)
+weights_list <- expand.grid(Sxx=weights, Sxy=weights, x.bar=weights, y.bar=weights)
+partition_list<- t(apply(weights_list, 1, softmax))
+partition_list_df <- data.frame(partition_list)
+names(partition_list_df) <- c("Sxx", "Sxy", "x.bar", "y.bar")
+
+# cross validation
+# use same x and y
+set.seed(25)
+x <- poissonDGP(1000)
+y <- noisyLinearDGP(dat, 1000, alpha=1, beta=1, mu=0, sd=1)
+# iterate through different partitions
+results_cv <- matrix(NA, nrow=nrow(partition_list), ncol=5)
+for (i in 1:nrow(partition_list)){
+  DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, epsilon, partition_list_df[i,])
+  results_cv[i,1] <- partition_list_df[i,]$Sxx
+  results_cv[i,2] <- partition_list_df[i,]$Sxy
+  results_cv[i,3] <- partition_list_df[i,]$x.bar
+  results_cv[i,4] <- partition_list_df[i,]$y.bar
+  results_cv[i,5] <- DPrelease$release.mean.sq.residuals
+}
+results_cv_df <- data.frame(results_cv)
+names(results_cv_df) <- c("Sxx", "Sxy", "x.bar", "y.bar", "release.mean.sq.residuals")
+
+print(results_cv_df[which.min(results_cv_df$release.mean.sq.residuals),])
+print(min(results_reg_df$release.mean.sq.residuals))
 
 
   
