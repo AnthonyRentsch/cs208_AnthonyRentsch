@@ -173,6 +173,7 @@ names(results_cv_df) <- c("Sxx", "Sxy", "x.bar", "y.bar", "release.mean.sq.resid
 
 print(results_cv_df[which.min(results_cv_df$release.mean.sq.residuals),])
 print(min(results_reg_df$release.mean.sq.residuals))
+print(mean(results_reg_df$release.mean.sq.residuals))
 
 
   

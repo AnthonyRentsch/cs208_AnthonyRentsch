@@ -190,6 +190,8 @@ The plot below shows the distributions of the mean-squared residuals for the pri
 
 *(c)* Now I run a grid search to attempt to identify a better partitioning of the privacy budget that leads to lower error. To set up my grid, I consider weights for each statistic ranging from 0.1 to 0.9 by steps of 0.1. I then apply a softmax function to ensure that each partition of epsilon adds up to 1 - the total privacy budget for this problem. In total, I consider 6,561 partitions, although some are redundant. 
 
+I do not find that any of these partitions substantially improve the utility provided by the equal partition. Using the same dataset for different partitions, I find that the minimum mean squared residual is 11.38 and comes when the weights for the weights for $S_{xx}$, $S_{xy}$, $\bar{x}$, and $\bar{y}$ are 0.30, 0.27,2 0.22, and 0.20, respectively (these do not add to 1 here due to rounding errors). In comparison the minimum mean squared residual for the equal partition was 11.12 and the average was 11.99.
+
 ## Question 4
 
 First we can write out 
@@ -205,6 +207,9 @@ $$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n} \leq \frac{\Sigma_{i=1}^nexp
 
 - average of indicator functions?
 
+## Question 5
+
+I will be working with Bhaven Patel for the final project.
 
 ## Appendix 
 
