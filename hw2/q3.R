@@ -158,15 +158,20 @@ names(partition_list_df) <- c("Sxx", "Sxy", "x.bar", "y.bar")
 set.seed(25)
 x <- poissonDGP(1000)
 y <- noisyLinearDGP(dat, 1000, alpha=1, beta=1, mu=0, sd=1)
+n_sims <- 10
 # iterate through different partitions
 results_cv <- matrix(NA, nrow=nrow(partition_list), ncol=5)
 for (i in 1:nrow(partition_list)){
-  DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, epsilon, partition_list_df[i,])
+  msr_sims <- c()
+  for (j in n_sims){
+    DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, epsilon, partition_list_df[i,])
+    msr_sims <- c(msr_sims, DPrelease$release.mean.sq.residuals)
+  }
   results_cv[i,1] <- partition_list_df[i,]$Sxx
   results_cv[i,2] <- partition_list_df[i,]$Sxy
   results_cv[i,3] <- partition_list_df[i,]$x.bar
   results_cv[i,4] <- partition_list_df[i,]$y.bar
-  results_cv[i,5] <- DPrelease$release.mean.sq.residuals
+  results_cv[i,5] <- mean(msr_sims)
 }
 results_cv_df <- data.frame(results_cv)
 names(results_cv_df) <- c("Sxx", "Sxy", "x.bar", "y.bar", "release.mean.sq.residuals")

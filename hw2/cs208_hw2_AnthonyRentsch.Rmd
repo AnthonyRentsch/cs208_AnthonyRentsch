@@ -1,12 +1,12 @@
 ---
 title: "cs208 HW 2"
 author: "Anthony Rentsch"
-date: "3/12/2019"
+date: "3/14/2019"
 output: pdf_document
 urlcolor: blue
 ---
 
-**Note**: I include the code I wrote directly in line for some questions, such as for 2 *(a)* and *(b)* which are purely implementation problems. For other questions, my code can be found in the Appendix and on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw2). 
+**Note**: I include the code I wrote directly in line for some questions, such as for 2 *(a)* and *(b)* which are purely implementation problems. For other questions, my code can be found in the Appendix and on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw2). I worked with Bhaven Patel and Lipika Ramaswamy for this assignment.
 
 ## Question 1
 
@@ -64,31 +64,35 @@ Thus, this mechanism is $(\epsilon, 0)$-differentially private for $\epsilon \ge
 
 $$\delta \geq max_{x~x'}[\int_ymax(P(M(x)=y)-exp(\epsilon)P(M(x')=y),0)]$$
 
-Since y will be bounded on [-1, 2] here, this is the same as
+Consider the worst-case scenario I defined above, where $x=[0,...,0]$ and $x'=[0,...,0,1]$. The expression inside the integral will only be $\geq 0$ for $y \in [-\infty, -1+\frac{1}{n}]$ because $P(M(x')=y)=0$ here. 
 
-$$max[\int_{-1}^2P(M(x)=y)-\exp(\epsilon)P(M(x')=y), 0]$$
+$$max[\int_{-\infty}^{\infty}P(M(x)=y)-\exp(\epsilon)P(M(x')=y), 0]$$
 
-Consider the worst-case scenario I defined above, where $x=[0,...,0]$ and $x'=[0,...,0,1]$. The expression inside the integral will only be $\geq 0$ for $y \in [-1, -1+\frac{1}{n}]$ because $P(M(x')=y)=0$ here. 
-
-$$\int_{-1}^{-1+\frac{1}{n}}P(M(x)=y)$$
+$$\int_{-\infty}^{-1+\frac{1}{n}}P(M(x)=y)$$
 
 $$\int_{-1}^{-1+\frac{1}{n}}P(\bar{x}+Z=y)$$
 
-$$\int_{-1}^{-1+\frac{1}{n}}\frac{n}{4}exp(\frac{-n|y-\bar{x}|}{2})$$
+Since $\bar{x}=0$, 
 
-$$\int_{-1}^{-1+\frac{1}{n}}\frac{n}{4}exp(\frac{-n(y-\bar{x})}{2})$$
+$$\int_{-\infty}^{-1+\frac{1}{n}}P(Z=y)$$
 
-$$\frac{n}{4}exp(\frac{-n\bar{x}}{2})\int_{-1}^{-1+\frac{1}{n}}exp(\frac{-ny}{2})$$
+$$\int_{-\infty}^{-1+\frac{1}{n}}\frac{n}{4}exp(\frac{-n|y|}{2})$$
 
-We know that $\bar{x}=0$ and after integrating we are left with
+$$\int_{-\infty}^{-1+\frac{1}{n}}\frac{n}{4}exp(\frac{ny}{2})$$
 
-$$\frac{1}{2}[exp(\frac{ny}{2})]_{-1}^{-1+\frac{1}{n}}$$
+$$\frac{n}{4}\int_{-\infty}^{-1+\frac{1}{n}}exp(\frac{ny}{2})$$
 
-$$\frac{1}{2}[exp(\frac{1}{2})exp(\frac{-n}{2})-exp(\frac{-n}{2})]$$
+After integrating we are left with
 
-$$\frac{1}{2}exp(\frac{-n}{2})[exp(\frac{1}{2})-1]$$
+$$\frac{1}{2}[exp(\frac{ny}{2})]_{-\infty}^{-1+\frac{1}{n}}$$
 
-Thus, this mechanism is $(\epsilon,\delta)$-differentially private for $\delta \geq \frac{1}{2}exp(\frac{-n}{2})[exp(\frac{1}{2})-1]$.
+$$\frac{1}{2}[exp(\frac{-n+1}{2})-exp(\frac{-n\infty}{2})]$$
+
+Since the second expression in the parenthesis goes to 0, we have
+
+$$\frac{1}{2}exp(\frac{-n+1}{2})$$
+
+Thus, this mechanism is $(\epsilon,\delta)$-differentially private for $\delta \geq \frac{1}{2}exp(\frac{-n+1}{2})$.
 
 (iii) Consider $x=[0,0,...,1]$ and $x'=[0,0,...,0]$. Now, $P(M(x)=1)=\frac{1}{n}$ while $P(M(x')=1)=0$. This clearly violates $P(M(x)=1) \leq exp(\epsilon)P(M(x')=1)$, so this mechanism is not $(\epsilon, 0)$-differentially private. Now let's consider the minimum value of $\delta$ for which it is $(\epsilon,\delta)$-differentially private.
 
@@ -103,7 +107,15 @@ Thus, this mechanism is $(\epsilon, \delta)$-differentially-private for $\delta 
 
 *(c)*
 
-*(d)* I guess (i) 
+(i) For this mechanism, the minimum value of $\epsilon$ depends on the bounds. Since the data were bounded on [0,1], the minimum value of $\epsilon$ is 0.5, but if $/epsilon$ were on [a,b], then the minimum value is $\frac{b-a}{n}$. From here the value of $\epsilon$ used for the mechanism can be tuned, i.e., made larger based on an evaluation of the privacy-utility tradeoff.
+
+(ii) - 
+
+(iii) - 
+
+(iv) Similarly to (i), this minimum value of $\epsilon$ depends on the bounds of the data. Here, the minimum value would be $\frac{b-a}{5}$. 
+
+*(d)* I would consider mechanism (i) to be the best for releasing a mean. For one, 
 -we understand laplace mechanism well
 -clamping to protect outliers?
 
@@ -150,18 +162,18 @@ laplaceClampMeanRelease <- function(x, epsilon, a=0, b=1){
 
 *(c)* I run 100 Monte Carlo simulations per upper bound value. In each simulation I draw 200 samples randomly drawn from a Poisson distribution and compute a noisy mean using the clamped Laplace mean mechanism. Then, I compare the root mean squared error between the true and noisy means for each upper bound value and plot these for every upper bound value. This is shown in the plot below.
 
-Based on my analysis, the optimal value for the upper bound b - i.e., the one that minimizes RMSE - is 19. I will use that value for the remiander of this problem and for Question 3.
+Based on my analysis, the optimal value for the upper bound b - i.e., the one that minimizes RMSE - is 19. I will use that value for the remainder of this problem and for Question 3.
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/plots/q2_plot.pdf}
 \end{center}
 
-*(d)* 
--protecting outliers
--why doesn't bootstrap do this
+*(d)* This bootstrap approach is not a good mechanism to preserve privacy because we may leak information about outliers. Consider a dataset with a lot of observations between 0 and 10, a few less between 20 and 30, and a handful of observations between 35 and 40. When we bootstrap (resample without replacement) there is a possibility, albeit a small one, that our boostrapped sample will overrepresent these outliers. If we get one of those bootstrapped samples when we evaluate an upper bound of 20, it will appear that 20 is a poor upper bound to choose from a utility perspective, but if we get one of those bootstrapped sampels when the upper bound in question is 40, then this cutoff will look like a good choice. Thus, the upper bound value may actually leak information about outliers in the dataset.
 
 *(e)*
 -propose new mechanism
+-lower sensitivity when we use mechanism to compute bound (local sensitivity, etc.) to get better utility and get a better bound based on this
+
 -local sensitivity --> lower sensitivity in general, means thay we draw less noisy means
 -BOOM
 -or a diffeent statistic, different mechanism
@@ -170,7 +182,7 @@ Based on my analysis, the optimal value for the upper bound b - i.e., the one th
 
 ## Question 3
 
-*(a)* I break up the regression coefficient and intercept release mechanism into four differentially private subroutines. We showed in class that simply computing a differentially private version of the coefficient directly would be useless because the global sensitivty approaches $\infty$. 
+*(a)* I break up the regression coefficient and intercept release mechanism into four differentially private subroutines. We showed in class that simply computing a differentially private version of the coefficient directly would be useless because the global sensitivty approaches $\infty$.
 
 First, I know that I can write the coefficient of the regression as $\frac{S_{xy}}{S_{xx}}$. Thus, computing a differentially private version of the coefficient requires two subroutines: one for $S_{xy}$ and another for $S_{xx}$. Next, to calculate the intercept, I can use the formula $\hat{\alpha}=\bar{y}-\hat{\beta}\bar{x}$. Since our $\beta$ is now differentially private, we can use the post-processing property to use it in this calculation with no extra privacy loss. However, we also need to compute a differentially private version of $\bar{x}$, and $\bar{y}$. To do this, I'll use the clamped Laplace mean release mechanism.
 
@@ -188,28 +200,40 @@ The plot below shows the distributions of the mean-squared residuals for the pri
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw2/plots/q3_plot2.pdf}
 \end{center}
 
-*(c)* Now I run a grid search to attempt to identify a better partitioning of the privacy budget that leads to lower error. To set up my grid, I consider weights for each statistic ranging from 0.1 to 0.9 by steps of 0.1. I then apply a softmax function to ensure that each partition of epsilon adds up to 1 - the total privacy budget for this problem. In total, I consider 6,561 partitions, although some are redundant. 
+*(c)* Now I run a grid search to attempt to identify a better partitioning of the privacy budget that leads to lower error. To set up my grid, I consider weights for each statistic ranging from 0.1 to 0.9 by steps of 0.1. I then apply a softmax function to ensure that each partition of epsilon adds up to 1 - the total privacy budget for this problem. In total, I consider 6,561 partitions, although some are redundant. For each partition in my grid, I run 10 simulations in which I compute the diffrentially private regression and take the average of the mean squared residuals across these 10 simulations. I use the same underlying dataset across all the simulations so that the only variability comes from the Laplace noise in my mechanism.
 
-I do not find that any of these partitions substantially improve the utility provided by the equal partition. Using the same dataset for different partitions, I find that the minimum mean squared residual is 11.38 and comes when the weights for the weights for $S_{xx}$, $S_{xy}$, $\bar{x}$, and $\bar{y}$ are 0.30, 0.27,2 0.22, and 0.20, respectively (these do not add to 1 here due to rounding errors). In comparison the minimum mean squared residual for the equal partition was 11.12 and the average was 11.99.
+I do not find that any of these partitions substantially improve the utility provided by the equal partition. I find that the minimum mean squared residual is 9.56 and comes when the weights for the weights for $S_{xx}$, $S_{xy}$, $\bar{x}$, and $\bar{y}$ are 0.20, 0.18, 0.28, and 0.34, respectively. In comparison the minimum mean squared residual for the equal partition was 9.20 and the average was 10.46.
+
 
 ## Question 4
 
-First we can write out 
+First we can write out the expected fraction of bits reconstructed as the sum of the probabilities of reconstructing each bit.
 
-$$\frac{\Sigma_{i=1}^nP[A(M(X))_i = X_i]}{n}$$
+$$\frac{P[A(M(X_i,X_{-i})) = X_i]}{n}$$
+
+By a union bound, this is less than or equal to
 
 $$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n}$$
 
 By the definition of $(\epsilon, \delta)$-differential privacy, we have
 
-$$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n} \leq \frac{\Sigma_{i=1}^nexp(\epsilon)P[A(M(0,X_{-i})) = X_i]}{n} + \delta$$
+$$\frac{\Sigma_{i=1}^nP[A(M(X_i,X_{-i})) = X_i]}{n} \leq \frac{\Sigma_{i=1}^nexp(\epsilon)P[A(M(X_i,X_{-i})) = X_i] + \delta}{n}$$
 
+For now, I'll drop the denominator since it is not affecting our evaluation of the numerator. Considering the post-processing property of a $(\epsilon, \delta)$-differentially private mechanism, we can replace each $X_i$ with either 0 or 1. Let $P(X_i=0)=p$ and $P(X_i=1)=p-1$. The left hand term above is now equal to
 
-- average of indicator functions?
+$$max\left(\Sigma_{i=1}^nexp(\epsilon)P[A(M(0,X_{-i})) = X_i], \Sigma_{i=1}^nexp(\epsilon)P[A(M(1,X_{-i})) = X_i]\right)+\delta$$
+
+$$max(\Sigma_{i=1}^nexp(\epsilon)p, \Sigma_{i=1}^nexp(\epsilon)(1-p))+\delta$$
+
+$$max(p, (1-p))*exp(\epsilon)*n+\delta$$
+
+The $n$ in this expression goes away when we divide by the denominator $n$ that I omitted for these calculations. Further, we can reqrtie $\delta^*=\delta/n$. Thus, we have that 
+
+$$E\left[\frac{\#i \in [n]: A(M(x))_i=X_i}{n}\right] \leq max(p, (1-p))*exp(\epsilon)+\delta^*$$
 
 ## Question 5
 
-I will be working with Bhaven Patel for the final project.
+I will be working with Bhaven Patel for the final project. 
 
 ## Appendix 
 
@@ -383,6 +407,36 @@ q3_plot2 <- ggplot(data=results_reg_df) +
   scale_fill_manual(values=c(semi.blue, semi.red)) +
   theme(legend.position="bottom", legend.title=element_blank())
   
-# d
-(more code to come)
+# c
+# set up grid
+softmax <- function(x) {
+  return(exp(x)/sum(exp(x)))
+}
+weights = seq(0.1,0.9,by=0.1)
+weights_list <- expand.grid(Sxx=weights, Sxy=weights, x.bar=weights, y.bar=weights)
+partition_list<- t(apply(weights_list, 1, softmax))
+partition_list_df <- data.frame(partition_list)
+names(partition_list_df) <- c("Sxx", "Sxy", "x.bar", "y.bar")
+
+# cross validation
+# use same x and y
+set.seed(25)
+x <- poissonDGP(1000)
+y <- noisyLinearDGP(dat, 1000, alpha=1, beta=1, mu=0, sd=1)
+# iterate through different partitions
+results_cv <- matrix(NA, nrow=nrow(partition_list), ncol=5)
+for (i in 1:nrow(partition_list)){
+  DPrelease <- regressionRelease(y, x, ylower=0, yupper=17, xlower=0, xupper=19, epsilon, partition_list_df[i,])
+  results_cv[i,1] <- partition_list_df[i,]$Sxx
+  results_cv[i,2] <- partition_list_df[i,]$Sxy
+  results_cv[i,3] <- partition_list_df[i,]$x.bar
+  results_cv[i,4] <- partition_list_df[i,]$y.bar
+  results_cv[i,5] <- DPrelease$release.mean.sq.residuals
+}
+results_cv_df <- data.frame(results_cv)
+names(results_cv_df) <- c("Sxx", "Sxy", "x.bar", "y.bar", "release.mean.sq.residuals")
+
+print(results_cv_df[which.min(results_cv_df$release.mean.sq.residuals),])
+print(min(results_reg_df$release.mean.sq.residuals))
+print(mean(results_reg_df$release.mean.sq.residuals))
 ```
