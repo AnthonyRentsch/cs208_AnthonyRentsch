@@ -219,9 +219,6 @@ Thus, we have that
 
 $$E\left[\frac{\#i \in [n]: A(M(x))_i=X_i}{n}\right] \leq max(p, 1-p)*exp(\epsilon)+\delta$$
 
-## Question 5
-
-I will be working with Bhaven Patel for the final project. 
 
 ## Appendix 
 
