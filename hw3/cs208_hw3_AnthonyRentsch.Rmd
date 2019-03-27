@@ -1,0 +1,37 @@
+---
+title: "cs208 HW 3"
+author: "Anthony Rentsch"
+date: "4/??/2019"
+output: pdf_document
+urlcolor: blue
+---
+
+
+## Question 1
+
+*(a)* 
+
+**proof here**
+
+```
+sgn <- function(x) {     # function borrowed from class
+  return(ifelse(x < 0, -1, 1))
+}
+
+rlap = function(mu=0, b=1, size=1) {     # function borrowed from class
+  p <- runif(size) - 0.5
+  draws <- mu - b * sgn(p) * log(1 - 2 * abs(p))
+  return(draws)
+}
+
+trimmedMean <- function(x, d, n, epsilon) {
+  scale <- d/(epsilon*n)
+  quants <- quantile(x, c(0.05,0.95))
+  x_trimmed <- x[x>quants[1] && x<quants[2]]
+  mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
+  mean_release <- mean_trimmed + rlap(mu=0,b=scale)
+  return(mean_release)
+}
+```
+
+## Question 2
