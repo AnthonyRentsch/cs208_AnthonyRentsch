@@ -19,12 +19,25 @@ rlap = function(mu=0, b=1, size=1) {     # function borrowed from class
 }
 
 trimmedMean <- function(x, d, n, epsilon) {
-  scale <- d/(epsilon*n)
+  scale <- d/(epsilon*0.9*n)
   quants <- quantile(x, c(0.05,0.95))
   x_trimmed <- x[x>quants[1] && x<quants[2]]
   mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
   mean_release <- mean_trimmed + rlap(mu=0,b=scale)
   return(mean_release)
 }
+
+# c
+exponentialPercentile <- function(x, t, lower, upper, nbins=0, epsilon){
+  n <- length(x)
+  if(nbins==0){
+    bins <- floor(lower):ceiling(upper) 
+    nbins <- length(bins)
+  }
+  
+  return(x)
+}
+
+# d
 
 
