@@ -42,5 +42,19 @@ trimmedMean <- function(x, d, n, epsilon) {
 }
 ```
 
+*(b)* Let's first consider the Lipschitz constant of the transformation $[x]_{P_{05}}^{P_{95}}$.
+- this must be 2-Lipschitz
+
+*(c)* - describe mechanism
+- implment with code
+
+*(d)* - code
+
+*(e)* - informal sketch of proof
+
+*(f)* - have to re-implement laplace clamped mean from last hw
+ - code + plots
+ - description of results/ situation in which this would be a good approach
+
 ## Question 2
 
