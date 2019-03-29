@@ -58,3 +58,11 @@ trimmedMean <- function(x, d, n, epsilon) {
 
 ## Question 2
 
+- comment
+
+\begin{center}
+\includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/plots/q2_plot.pdf}
+\end{center}
+
+
+## Question 3
