@@ -28,40 +28,40 @@ trimmedMean <- function(x, d, n, epsilon) {
 }
 
 # c
-exponentialPercentile <- function(x, t, lower, upper, epsilon, nbins=0){
+unique_x <- 
+nunique_x <- length(unique_x)
+bins <- unique_x 
+nbins <- nunique_x
+
+
+exponentialPercentile <- function(x, t, epsilon){
   t <- t/100
-  
-  if (nbins==0) {
-    bins <- floor(lower):ceiling(upper)
-    nbins <- length(bins)
-  }
-  else {
-    bins <- seq(lower, upper, length.out=nbins)
-  }
-  
-  quality <- rep(NA, nbins)
+  n <- length(x)
+  bins <- sort(x)
+  #nbins = n-1 ?
+
+  quality <- rep(NA, n)
   for(i in 1:length(quality)){
-    quality[i] <- 1 - abs(t/(1-t) - sum(x<bins[i])/sum(x>=bins[i]))
+    quality[i] <- n - abs(n*t - i)
   }
   
   likelihoods <- exp(epsilon * quality) / 2
-  probabilities <- likelihoods/sum(likelihoods)
+  weighted_likelihoods <- rep(NA, length(likelihoods))
+  for (i in 1:length(likelihoods)){
+    weighted_likelihoods[i] <- weighted_likelihoods[i]*(bins[i]-bins[i+1]+1)
+  }
+  probabilities <- weighted_likelihoods/sum(weighted_likelihoods)
   flag <- runif(n=1, min=0, max=1) < cumsum(probabilities) 
   
-  bin_low = ifelse(sum(bins[flag==FALSE])==0, lower, max(bins[flag==FALSE]))
-  bin_high = ifelse(sum(bins[flag==TRUE])==0, upper, min(bins[flag==TRUE]))
-  DPrelease <- runif(n=1, min=bin_low, max=bin_high)
+  bin_low = max(bins[flag==FALSE])
+  bin_high = min(bins[flag==TRUE])
+  DPrelease <- sample(x=bin_low:bin_high, size=1)
   
   return(list(dp=DPrelease, bins=bins, flag=flag, q=quality))
 }
 
-h = exponentialPercentile(pums$income,t=25,lower=0,upper=1000000,epsilon=0.5,nbins=1000)
+h = exponentialPercentile(pums$income, t=25, epsilon=0.5)
 
-save <- rep(NA, 50)
-for (i in 1:length(save)){
-  save[i] <- exponentialPercentile(pums$income,t=5,lower=0,upper=1000000,epsilon=0.5,nbins=100)
-}
-hist(save)
 
 # d
 

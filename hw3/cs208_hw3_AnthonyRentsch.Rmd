@@ -43,22 +43,31 @@ trimmedMean <- function(x, d, n, epsilon) {
 ```
 
 *(b)* Let's first consider the Lipschitz constant of the transformation $[x]_{P_{05}}^{P_{95}}$.
+
 - this must be 2-Lipschitz
 
-*(c)* - describe mechanism
+*(c)* 
+
+- describe mechanism
 - implment with code
 
-*(d)* - code
+*(d)* 
 
-*(e)* - informal sketch of proof
+- code
 
-*(f)* - have to re-implement laplace clamped mean from last hw
+*(e)* 
+
+- informal sketch of proof
+
+*(f)* 
+
+- have to re-implement laplace clamped mean from last hw
  - code + plots
  - description of results/ situation in which this would be a good approach
 
 ## Question 2
 
-- comment
+The "optimal" composition theorem strictly improves upon the standard deviation of the injected noise from the basic composition theorem when $k \geq 14$ and advanced composition strictly improves upon basic composition when $k \geq 37$. Up to $k=14$, basic and "optimal"" composition correspond to roughly the same standard deviation. The standard deviation from advanced composition is strictly larger than the standard deviation from "optimal"" composition, but the ratio between the two appears to remain constant as $k \rightarrow \infty$. 
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/plots/q2_plot.pdf}
@@ -66,3 +75,20 @@ trimmedMean <- function(x, d, n, epsilon) {
 
 
 ## Question 3
+
+
+
+
+## BONUS
+
+
+
+## Appendix
+
+I put the code for all of my analyses here. You can also find it on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw3).
+
+### Question 1
+
+### Question 2
+
+### Question 3

@@ -73,3 +73,8 @@ q2_plot <- ggplot(sds_df) + geom_line(aes(x=k, y=basic, colour="Basic")) +
 pdf("plots/q2_plot.pdf", width=8, height=8)
 q2_plot
 dev.off()
+
+# when do advanced/optimal beat basic?
+paste0("Advanced: ", min(sds_df$k[sds_df$advanced < sds_df$basic]))
+paste0("Optimal: ", min(sds_df$k[sds_df$optimal < sds_df$basic]))
+
