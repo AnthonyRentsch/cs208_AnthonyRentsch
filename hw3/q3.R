@@ -152,19 +152,20 @@ synthetic_data_df$log_income <- plyr::mapvalues(synthetic_data_df$log_income,
                                          to=res$zcodebook)
 
 synthetic_reg <- lm(log_income ~ age + educ, data = synthetic_data_df)
-synthetic_slopes <- coef(synthetic_reg)[2:3]
+synthetic_slopes <- coef(synthetic_reg)[1:3]
 
 # sensitive results
 true_reg <- lm(log_income_clipped ~ age + educ, data = pums)
-true_slopes <- coef(true_reg)[2:3]
+true_slopes <- coef(true_reg)[1:3]
 
 # error
-paste0("MSE for age coefficient: ", mse(synthetic_slopes[1], true_slopes[1]))
-paste0("MSE for education coefficient: ", mse(synthetic_slopes[2], true_slopes[2]))
+paste0("MSE for intercept: ", mse(synthetic_slopes[1], true_slopes[1]))
+paste0("MSE for age coefficient: ", mse(synthetic_slopes[2], true_slopes[2]))
+paste0("MSE for education coefficient: ", mse(synthetic_slopes[3], true_slopes[3]))
 
 # simulations to examine contribution to MSE of bias and variance
 n_sims <- 10
-sim_history <- matrix(NA, nrow=n_sims, ncol=2)
+sim_history <- matrix(NA, nrow=n_sims, ncol=3)
 
 if(run_sims_flag){
   for(i in 1:n_sims){
@@ -189,10 +190,11 @@ if(run_sims_flag){
                                                     to=res_sim$zcodebook)
     
     synthetic_reg_sim <- lm(log_income ~ age + educ, data = synthetic_data_sim_df)
-    synthetic_slopes_sim <- coef(synthetic_reg_sim)[2:3]
+    synthetic_slopes_sim <- coef(synthetic_reg_sim)[1:3]
     
     sim_history[i,1] <- synthetic_slopes_sim[1]
     sim_history[i,2] <- synthetic_slopes_sim[2]
+    sim_history[i,3] <- synthetic_slopes_sim[3]
   }
   write.csv(sim_history, "sim_history.csv")
 }
@@ -203,32 +205,40 @@ sim_history <- read.csv("sim_history.csv")
 # bootstrap to examine sampling error
 n_boots <- 1000
 boot_size <- 1000
-boot_history <- matrix(NA, nrow=n_boots, ncol=2)
+boot_history <- matrix(NA, nrow=n_boots, ncol=3)
 for(i in 1:n_boots){
   boot_inds <- bootstrap(x=1:nrow(pums), n=boot_size)
   boot_data <- pums[boot_inds,]
   boot_reg <- lm(log_income_clipped ~ age + educ, data=boot_data)
-  boot_slopes <- coef(boot_reg)[2:3]
+  boot_slopes <- coef(boot_reg)[1:3]
   boot_history[i,1] <- boot_slopes[1]
   boot_history[i,2] <- boot_slopes[2]
+  boot_history[i,3] <- boot_slopes[3]
 }
 
 # print results
-mse_age <- mse(pred=sim_history[,2], true=true_slopes[1])
-var_age <- var(sim_history[,2])
+mse_int <- mse(pred=sim_history[,2], true=true_slopes[1])
+var_int <- var(sim_history[,2])
+bias_sq_int <- mse_int - var_int
+sampling_mse_int <- mse(boot_history[,1], true_slopes[1])
+
+mse_age <- mse(pred=sim_history[,3], true=true_slopes[2])
+var_age <- var(sim_history[,3])
 bias_sq_age <- mse_age - var_age
-sampling_mse_age <- mse(boot_history[,1], true_slopes[1])
+sampling_mse_age <- mse(boot_history[,2], true_slopes[2])
 
-mse_educ <- mse(pred=sim_history[,3], true=true_slopes[2])
-var_educ <- var(sim_history[,3])
+mse_educ <- mse(pred=sim_history[,4], true=true_slopes[3])
+var_educ <- var(sim_history[,4])
 bias_sq_educ <- mse_educ-var_educ
-sampling_mse_educ <- mse(boot_history[,2], true_slopes[2])
+sampling_mse_educ <- mse(boot_history[,3], true_slopes[3])
 
+cat("Intercept","\nDP MSE: ", mse_int, "\nDP Variance: ", var_int, "\nDP Bias^2: ", bias_sq_int, "\nSampling MSE: ", sampling_mse_int)
 cat("Age","\nDP MSE: ", mse_age, "\nDP Variance: ", var_age, "\nDP Bias^2: ", bias_sq_age, "\nSampling MSE: ", sampling_mse_age)
 cat("Educ","\nDP MSE: ", mse_educ, "\nDP Variance: ", var_educ, "\nDP Bias^2: ", bias_sq_educ, "\nSampling MSE: ", sampling_mse_educ)
 
 # save results
 q3_results <- data.frame("Metric"=c("DP MSE","DP Variance","DP Bias^2","Sampling MSE"),
+                         "Intercept"=c(mse_int,var_int,bias_sq_int,sampling_mse_int),
                          "Education"=c(mse_age,var_age,bias_sq_age,sampling_mse_age),
                          "Age"=c(mse_educ,var_educ,bias_sq_educ,sampling_mse_educ))
 write.csv(q3_results, "q3_results.csv")

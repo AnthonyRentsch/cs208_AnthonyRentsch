@@ -6,6 +6,8 @@ output: pdf_document
 urlcolor: blue
 ---
 
+**Note**: I include the code I wrote directly in line for some questions that ask only to implement a method. For other questions, my code can be found in the Appendix and on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw3). I worked with Bhaven Patel and Lipika Ramaswamy for this assignment.
+
 
 ## Question 1
 
@@ -37,7 +39,7 @@ trimmedMean <- function(x, d, n, epsilon) {
   quants <- quantile(x, c(0.05,0.95))
   x_trimmed <- x[x>quants[1] && x<quants[2]]
   mean_trimmed <- (1/(0.9*epsilon*n))*sum(x_trimmed)
-  mean_release <- mean_trimmed + rlap(mu=0,b=scale)
+  mean_release <- mean_trimmed + rlap(mu=0,b=scale,size=1)
   return(mean_release)
 }
 ```
@@ -49,11 +51,52 @@ trimmedMean <- function(x, d, n, epsilon) {
 *(c)* 
 
 - describe mechanism
-- implment with code
+
+$$u(x,y) = n - \mid n*t - \# below \mid$$
+
+Code for the mechanism is below.
+
+```
+exponentialPercentile <- function(x, t, epsilon){
+  t <- t/100
+  bins <- sort(x)
+  nbins = length(bins)
+
+  likelihoods <- rep(NA, nbins)
+  for(i in 1:nbins){
+    quality <- nbins - abs(nbins*t - i)
+    bin_width <- ifelse((i+1) %in% 1:nbins, bins[i]-bins[i+1]+1, 1)
+    likelihoods[i] <- (exp(epsilon * quality) / 2)*(bin_width)
+  }
+  
+  probabilities <- likelihoods/sum(likelihoods)
+  flag <- runif(n=1, min=0, max=1) < cumsum(probabilities) 
+  
+  bin_low_ind = which(flag)[1]
+  bin_high_ind = bin_low_ind + 1
+  DPrelease <- runif(n=1, min=bins[bin_low_ind], max=bins[bin_high_ind])
+  
+  return(list(release=DPrelease, low=bins[bin_low_ind], high=bins[bin_high_ind]))
+}
+```
 
 *(d)* 
 
-- code
+```
+e3trimmedMean <- function(x, epsilon, tile_low=5, tile_high=95) {
+  
+  n <- length(x)
+  
+  tile_low_value <- exponentialPercentile(x, t=tile_low, epsilon=epsilon/3)
+  tile_high_value <- exponentialPercentile(x, t=tile_high, epsilon=epsilon/3)
+  x_trimmed <- x[x>tile_low_value && x<tile_high_value]
+  mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
+  
+  scale <- (3*(tile_high_value-tile_low_value))/(0.9*epsilon*n)
+  mean_release <- mean_trimmed + rlap(mu=0,b=scale,size=1)
+  return(mean_release)
+}
+```
 
 *(e)* 
 
@@ -76,15 +119,17 @@ The "optimal" composition theorem strictly improves upon the standard deviation 
 
 ## Question 3
 
-- clip data to small positive value (1) and log it as a pre-process
-- income value i use from here on out is now the $log(clip(income))$
-- print out main results in a table
+Here, I examine the utility of synthetic data generated using the DP histogram approach. To do this, I (1) generate synthetic data by adding Laplace distributed noise to the $age$ x  $education$ x $income$ bins counts for the PUMS data, (2) sample 10,000 synthetic observations based on these bin counts, (3) estimate a regression model relating age and education to income, and (4) compute the mean squared error, squared bias, and variance of the coefficient estimates for age, education, and the intercept.
+
+As a pre-process to this whole procedure, I clip the income variable to 1 so that I can work with the log of the income. I then use the log of the clipped income for the remainder of the problem, i.e., to compute the sensitive regression on the entire dataset and to produce the histogram release and corresponding synthetic data.
+
+The table below summarizes my results. **findings here**
 
 ```{r, echo=FALSE, message=FALSE}
 require(knitr)
 options(scipen=999)
 q3_results <- read.csv("q3_results.csv")
-knitr::kable(q3_results)
+knitr::kable(q3_results[,2:5])
 ```
 
 
@@ -97,8 +142,75 @@ knitr::kable(q3_results)
 
 I put the code for all of my analyses here. You can also find it on [Github](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw3).
 
+```
+# Set up
+require(plyr); require(dplyr); require(ggplot2)
+pums <- read.csv("MaPUMS5full.csv")
+```
+
 ### Question 1
+```
+# code to be added
+```
 
 ### Question 2
+```
+# parameters
+global_epsilon = 1
+global_delta = 10^(-9)
+global_sens = 1
+max_k = 100
+
+# Laplace sd
+laplaceSD <- function(epsilon) { return((sqrt(2)/epsilon)) }
+
+# basic
+basicComposition <- function(epsilon, k) { return(epsilon/k) }
+
+# advanced
+advancedComposition <- function(epsilon, k, delta) { return(epsilon/sqrt(2*k*log(1/delta))) }
+
+# optimal
+# use PSIlence:::update_parameters
+
+# compute sds
+sds <- matrix(NA, nrow=100, ncol=4)
+for (k in 1:max_k) {
+  epsilon_comp <- basicComposition(global_epsilon, k)
+  epsilon_adv <- advancedComposition(global_epsilon, k, global_delta)
+  
+  init <- rep(c(1/k, 0), k)
+  params <- matrix(init, nrow=k, ncol=2, byrow=TRUE)
+  inverse <- PSIlence:::update_parameters(params, hold=0, eps=global_epsilon, del=global_delta)
+  epsilon_opt <- max(inverse[,1])
+  
+  sds[k,1] <- laplaceSD(epsilon_comp)
+  sds[k,2] <- laplaceSD(epsilon_adv)
+  sds[k,3] <- laplaceSD(epsilon_opt)
+  sds[k,4] <- k
+}
+
+sds_df <- data.frame(sds)
+names(sds_df) <- c("basic", "advanced", "optimal", "k")
+
+q2_plot <- ggplot(sds_df) + geom_line(aes(x=k, y=basic, colour="Basic")) +
+  geom_line(aes(x=k, y=advanced, colour="Advanced")) +
+  geom_line(aes(x=k, y=optimal, colour="Optimal")) +
+  labs(x="k", y="Standard deviation") +
+  scale_colour_manual(values=c("#FF6347", "#0000FF", "#228B22")) +
+  theme_bw() +
+  theme(legend.title = element_blank())
+pdf("plots/q2_plot.pdf", width=8, height=8)
+q2_plot
+dev.off()
+
+# when do advanced/optimal beat basic?
+paste0("Advanced: ", min(sds_df$k[sds_df$advanced < sds_df$basic]))
+paste0("Optimal: ", min(sds_df$k[sds_df$optimal < sds_df$basic]))
+```
 
 ### Question 3
+```
+# code to be added
+```
+
