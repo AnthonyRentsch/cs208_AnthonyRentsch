@@ -6,6 +6,8 @@ rm(list = ls())
 setwd("~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/")
 require(plyr); require(dplyr); require(ggplot2)
 pums <- read.csv("MaPUMS5full.csv")
+run_sims_flag <- TRUE
+set.seed(208)
 
 # functions
 
@@ -98,51 +100,34 @@ xyzHistogramRelease <- function(x, y, z, xlower, xupper, ylower, yupper, zlower,
   sensitivity <- 2
   scale <- sensitivity / (epsilon)
   
-  sensitiveValue <- DPrelease <- matrix(NA, nrow=(xnbins*ynbins*znbins), ncol=4)
+  sensitiveValue <- DPrelease <- matrix(NA, nrow=xnbins*ynbins*znbins, ncol=4)
   
   row_ind <- 1
   for(i in 1:xnbins){
     for(j in 1:ynbins){
       for(k in 1:znbins){
-        sensitiveValue[row_ind,1] <- DPrelease[row_ind,1] <- i
-        sensitiveValue[row_ind,2] <- DPrelease[row_ind,2] <- j
-        sensitiveValue[row_ind,3] <- DPrelease[row_ind,3] <- k
-        sensitiveValue[row_ind,4] <- sum(x.clipped >= xbins[i] & x.clipped < xbins[i+1] & y.clipped >= ybins[j] & y.clipped < ybins[j+1] & z.clipped >= zbins[k] & z.clipped < zbins[k+1])
-        DPrelease[row_ind,4] <- sensitiveValue[row_ind,4] + rlap(mu=0, b=scale, size=1)
-        
+        bin_count <- sum(x.clipped >= xbins[i] & x.clipped < xbins[i+1] & y.clipped >= ybins[j] & y.clipped < ybins[j+1] & z.clipped >= zbins[k] & z.clipped < zbins[k+1])
+        release_count <- bin_count + rlap(mu=0, b=scale, size=1)
+        sensitiveValue[row_ind,] <- c(i,j,k,bin_count)
+        DPrelease[row_ind,] <- c(i,j,k,release_count)
         row_ind = row_ind + 1
       }
     }
   }
   
-  sensitiveValue[is.na(sensitiveValue)] <- 0
-  DPrelease[is.na(DPrelease)] <- 0
-  
   return(list(release=DPrelease, true=sensitiveValue, xcodebook=xcodebook, ycodebook=ycodebook, zcodebook=zcodebook))
 }
 
-#
-# feel like I should make this matrix not a 3d array 
-# but matrix with educ, age, income columns you know?
-#
-
-
 # run histogram release
-# is 10 bins for income too few? probably
+start = Sys.time()
 res = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$income, 
-                          xlower=0, xupper=16, ylower=18, yupper=100, zlower=0, zupper=500000, 
+                          xlower=1, xupper=16, ylower=18, yupper=100, zlower=0, zupper=1000000, 
                           xnbins=0, ynbins=0, znbins=10, epsilon=1)
+end = Sys.time()
+end-start
 
 # private results
-
-# turn these bin sizes into probs
-# sample from them
-# create matrix that has educ, age, income values corresponding to bins that get sampled
-# turn this into a df and run lm()
-# that's essentially what James did in his code, but I need to figure out:
-# 1. do i create some master synthetic data, so size nrow(pums)? or smaller synthetic data?
-# I feel like create one master and bootstrap from it is way to go, because no extra privacy price
-# 2. do i use rmultinom or can i just use sample w/ replacement like i did?
+# do i use rmultinom or can i just use sample w/ replacement like i did?
 
 synthetic_n <- 10000
 synthetic_bin_probs <- normalize(res$release[,4])
@@ -172,9 +157,70 @@ true_slopes <- coef(true_reg)[2:3]
 paste0("MSE for age coefficient: ", mse(synthetic_slopes[1], true_slopes[1]))
 paste0("MSE for education coefficient: ", mse(synthetic_slopes[2], true_slopes[2]))
 
-# bootstrap
-n_sims <- 1000
+# simulations to examine contribution to MSE of bias and variance
+n_sims <- 15
+sim_history <- matrix(NA, nrow=n_sims, ncol=2)
 
+if(run_sims_flag){
+  for(i in 1:n_sims){
+    print(i)
+    res_sim = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$income,
+                                  xlower=1, xupper=16, ylower=18, yupper=100, zlower=0, zupper=1000000,
+                                  xnbins=0, ynbins=0, znbins=10, epsilon=1)
+    synthetic_bin_probs_sim <- normalize(res_sim$release[,4])
+    synthetic_inds_sim <- sample(x=1:nrow(res_sim$release), size=synthetic_n, replace=TRUE, prob=synthetic_bin_probs_sim)
+    synthetic_data_sim <- res_sim$release[synthetic_inds_sim,1:3]
+    synthetic_data_sim_df <- data.frame(synthetic_data_sim)
+    names(synthetic_data_sim_df) <- c("educ", "age", "income")
+    
+    synthetic_data_sim_df$educ <- plyr::mapvalues(synthetic_data_sim_df$educ,
+                                                  from=sort(unique(synthetic_data_sim_df$educ)),
+                                                  to=res_sim$xcodebook)
+    synthetic_data_sim_df$age <- plyr::mapvalues(synthetic_data_sim_df$age,
+                                                 from=sort(unique(synthetic_data_sim_df$age)),
+                                                 to=res_sim$ycodebook)
+    synthetic_data_sim_df$income <- plyr::mapvalues(synthetic_data_sim_df$income,
+                                                    from=sort(unique(synthetic_data_sim_df$income)),
+                                                    to=res_sim$zcodebook)
+    
+    synthetic_reg_sim <- lm(income ~ age + educ, data = synthetic_data_sim_df)
+    synthetic_slopes_sim <- coef(synthetic_reg_sim)[2:3]
+    
+    sim_history[i,1] <- synthetic_slopes_sim[1]
+    sim_history[i,2] <- synthetic_slopes_sim[2]
+  }
+  write.csv(sim_history, "sim_history.csv")
+}
+
+sim_history <- read.csv("sim_history.csv")
+
+
+# bootstrap to examine sampling error
+n_boots <- 1000
+boot_size <- 1000
+boot_history <- matrix(NA, nrow=n_boots, ncol=2)
+for(i in 1:n_boots){
+  boot_inds <- bootstrap(x=1:nrow(pums), n=boot_size)
+  boot_data <- pums[boot_inds,]
+  boot_reg <- lm(income ~ age + educ, data=boot_data)
+  boot_slopes <- coef(boot_reg)[2:3]
+  boot_history[i,1] <- boot_slopes[1]
+  boot_history[i,2] <- boot_slopes[2]
+}
+
+# print results
+mse_age <- mse(pred=sim_history[,2], true=true_slopes[1])
+var_age <- var(sim_history[,2])
+bias_sq_age <- mse_age - var_age
+sampling_mse_age <- mse(boot_history[,1], true_slopes[1])
+
+mse_educ <- mse(pred=sim_history[,3], true=true_slopes[2])
+var_educ <- var(sim_history[,3])
+bias_sq_educ <- mse_educ-var_educ
+sampling_mse_educ <- mse(boot_history[,2], true_slopes[2])
+
+cat("Age","\nDP MSE: ", round(mse_age,2), "\nDP Variance: ", round(var_age,2), "\nDP Bias^2: ", round(bias_sq_age,2), "\nSampling MSE: ", round(sampling_mse_age,2))
+cat("Educ","\nDP MSE: ", round(mse_educ,2), "\nDP Variance: ", round(var_educ,2), "\nDP Bias^2: ", round(bias_sq_educ,2), "\nSampling MSE: ", round(sampling_mse_educ,2))
 
 
 

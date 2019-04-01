@@ -26,7 +26,7 @@ library("PSIlence")
 
 # parameters
 global_epsilon = 1
-global_delta = 10e-9
+global_delta = 10^(-9)
 global_sens = 1
 max_k = 100
 
@@ -48,7 +48,6 @@ for (k in 1:max_k) {
   epsilon_comp <- basicComposition(global_epsilon, k)
   epsilon_adv <- advancedComposition(global_epsilon, k, global_delta)
   
-  # ?
   init <- rep(c(1/k, 0), k)
   params <- matrix(init, nrow=k, ncol=2, byrow=TRUE)
   inverse <- PSIlence:::update_parameters(params, hold=0, eps=global_epsilon, del=global_delta)

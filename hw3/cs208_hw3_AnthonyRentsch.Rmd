@@ -67,7 +67,7 @@ trimmedMean <- function(x, d, n, epsilon) {
 
 ## Question 2
 
-The "optimal" composition theorem strictly improves upon the standard deviation of the injected noise from the basic composition theorem when $k \geq 14$ and advanced composition strictly improves upon basic composition when $k \geq 37$. Up to $k=14$, basic and "optimal"" composition correspond to roughly the same standard deviation. The standard deviation from advanced composition is strictly larger than the standard deviation from "optimal"" composition, but the ratio between the two appears to remain constant as $k \rightarrow \infty$. 
+The "optimal" composition theorem strictly improves upon the standard deviation of the injected noise from the basic composition theorem when $k \geq 17$ and advanced composition strictly improves upon basic composition when $k \geq 42$. Up to $k=17$, basic and "optimal" composition correspond to roughly the same standard deviation. The standard deviation from advanced composition is strictly larger than the standard deviation from "optimal"" composition, but the ratio between the two appears to remain constant as $k \rightarrow \infty$. 
 
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/plots/q2_plot.pdf}
@@ -76,7 +76,17 @@ The "optimal" composition theorem strictly improves upon the standard deviation 
 
 ## Question 3
 
+Age 
+DP MSE:  326972.9 
+DP Variance:  4876.91 
+DP Bias^2:  322096 
+Sampling MSE:  3990.95
 
+Educ 
+DP MSE:  46207829 
+DP Variance:  853037.8 
+DP Bias^2:  45354791 
+Sampling MSE:  286848.7
 
 
 ## BONUS
