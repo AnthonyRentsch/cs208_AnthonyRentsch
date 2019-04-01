@@ -76,17 +76,17 @@ The "optimal" composition theorem strictly improves upon the standard deviation 
 
 ## Question 3
 
-Age 
-DP MSE:  326972.9 
-DP Variance:  4876.91 
-DP Bias^2:  322096 
-Sampling MSE:  3990.95
+- clip data to small positive value (1) and log it as a pre-process
+- income value i use from here on out is now the $log(clip(income))$
+- print out main results in a table
 
-Educ 
-DP MSE:  46207829 
-DP Variance:  853037.8 
-DP Bias^2:  45354791 
-Sampling MSE:  286848.7
+```{r, echo=FALSE, message=FALSE}
+require(knitr)
+options(scipen=999)
+q3_results <- read.csv("q3_results.csv")
+knitr::kable(q3_results)
+```
+
 
 
 ## BONUS

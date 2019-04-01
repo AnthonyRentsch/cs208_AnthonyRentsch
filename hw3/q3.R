@@ -6,7 +6,8 @@ rm(list = ls())
 setwd("~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/")
 require(plyr); require(dplyr); require(ggplot2)
 pums <- read.csv("MaPUMS5full.csv")
-run_sims_flag <- TRUE
+run_sims_flag <- FALSE
+options(scipen=999)
 set.seed(208)
 
 # functions
@@ -88,8 +89,8 @@ xyzHistogramRelease <- function(x, y, z, xlower, xupper, ylower, yupper, zlower,
     zcodebook <- zbins[1:znbins]
   } else {
     zbins <- seq(from=zlower, to=zupper, length=znbins+1)
-    zgranularity <- (zupper-ylower)/znbins
-    zbins[znbins+1] <-  zbins[ynbins+1] + zgranularity
+    zgranularity <- (zupper-zlower)/znbins
+    zbins[znbins+1] <-  zbins[znbins+1] + zgranularity
     zcodebook <- zbins[1:znbins] + 0.5*zgranularity
   }
   
@@ -118,23 +119,27 @@ xyzHistogramRelease <- function(x, y, z, xlower, xupper, ylower, yupper, zlower,
   return(list(release=DPrelease, true=sensitiveValue, xcodebook=xcodebook, ycodebook=ycodebook, zcodebook=zcodebook))
 }
 
+# clip and log income
+pums$log_income_clipped <- log(clip(x=pums$income, lower=1, upper=1000000))
+log_income_low <- floor(log(1))
+log_income_high <- ceiling(log(1000000))
+
 # run histogram release
 start = Sys.time()
-res = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$income, 
-                          xlower=1, xupper=16, ylower=18, yupper=100, zlower=0, zupper=1000000, 
+res = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$log_income_clipped, 
+                          xlower=1, xupper=16, ylower=18, yupper=100, zlower=log_income_low, zupper=log_income_high, 
                           xnbins=0, ynbins=0, znbins=10, epsilon=1)
 end = Sys.time()
 end-start
 
 # private results
-# do i use rmultinom or can i just use sample w/ replacement like i did?
 
 synthetic_n <- 10000
 synthetic_bin_probs <- normalize(res$release[,4])
 synthetic_inds <- sample(x=1:nrow(res$release), size=synthetic_n, replace=TRUE, prob=synthetic_bin_probs)
 synthetic_data <- res$release[synthetic_inds,1:3]
 synthetic_data_df <- data.frame(synthetic_data)
-names(synthetic_data_df) <- c("educ", "age", "income")
+names(synthetic_data_df) <- c("educ", "age", "log_income")
 
 synthetic_data_df$educ <- plyr::mapvalues(synthetic_data_df$educ, 
                                           from=sort(unique(synthetic_data_df$educ)), 
@@ -142,15 +147,15 @@ synthetic_data_df$educ <- plyr::mapvalues(synthetic_data_df$educ,
 synthetic_data_df$age <- plyr::mapvalues(synthetic_data_df$age, 
                                           from=sort(unique(synthetic_data_df$age)), 
                                           to=res$ycodebook)
-synthetic_data_df$income <- plyr::mapvalues(synthetic_data_df$income, 
-                                         from=sort(unique(synthetic_data_df$income)), 
+synthetic_data_df$log_income <- plyr::mapvalues(synthetic_data_df$log_income, 
+                                         from=sort(unique(synthetic_data_df$log_income)), 
                                          to=res$zcodebook)
 
-synthetic_reg <- lm(income ~ age + educ, data = synthetic_data_df)
+synthetic_reg <- lm(log_income ~ age + educ, data = synthetic_data_df)
 synthetic_slopes <- coef(synthetic_reg)[2:3]
 
 # sensitive results
-true_reg <- lm(income ~ age + educ, data=pums)
+true_reg <- lm(log_income_clipped ~ age + educ, data = pums)
 true_slopes <- coef(true_reg)[2:3]
 
 # error
@@ -158,20 +163,20 @@ paste0("MSE for age coefficient: ", mse(synthetic_slopes[1], true_slopes[1]))
 paste0("MSE for education coefficient: ", mse(synthetic_slopes[2], true_slopes[2]))
 
 # simulations to examine contribution to MSE of bias and variance
-n_sims <- 15
+n_sims <- 10
 sim_history <- matrix(NA, nrow=n_sims, ncol=2)
 
 if(run_sims_flag){
   for(i in 1:n_sims){
     print(i)
-    res_sim = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$income,
-                                  xlower=1, xupper=16, ylower=18, yupper=100, zlower=0, zupper=1000000,
+    res_sim = xyzHistogramRelease(x=pums$educ, y=pums$age, z=pums$log_income_clipped,
+                                  xlower=1, xupper=16, ylower=18, yupper=100, zlower=log_income_low, zupper=log_income_high,
                                   xnbins=0, ynbins=0, znbins=10, epsilon=1)
     synthetic_bin_probs_sim <- normalize(res_sim$release[,4])
     synthetic_inds_sim <- sample(x=1:nrow(res_sim$release), size=synthetic_n, replace=TRUE, prob=synthetic_bin_probs_sim)
     synthetic_data_sim <- res_sim$release[synthetic_inds_sim,1:3]
     synthetic_data_sim_df <- data.frame(synthetic_data_sim)
-    names(synthetic_data_sim_df) <- c("educ", "age", "income")
+    names(synthetic_data_sim_df) <- c("educ", "age", "log_income")
     
     synthetic_data_sim_df$educ <- plyr::mapvalues(synthetic_data_sim_df$educ,
                                                   from=sort(unique(synthetic_data_sim_df$educ)),
@@ -179,11 +184,11 @@ if(run_sims_flag){
     synthetic_data_sim_df$age <- plyr::mapvalues(synthetic_data_sim_df$age,
                                                  from=sort(unique(synthetic_data_sim_df$age)),
                                                  to=res_sim$ycodebook)
-    synthetic_data_sim_df$income <- plyr::mapvalues(synthetic_data_sim_df$income,
-                                                    from=sort(unique(synthetic_data_sim_df$income)),
+    synthetic_data_sim_df$log_income <- plyr::mapvalues(synthetic_data_sim_df$log_income,
+                                                    from=sort(unique(synthetic_data_sim_df$log_income)),
                                                     to=res_sim$zcodebook)
     
-    synthetic_reg_sim <- lm(income ~ age + educ, data = synthetic_data_sim_df)
+    synthetic_reg_sim <- lm(log_income ~ age + educ, data = synthetic_data_sim_df)
     synthetic_slopes_sim <- coef(synthetic_reg_sim)[2:3]
     
     sim_history[i,1] <- synthetic_slopes_sim[1]
@@ -202,7 +207,7 @@ boot_history <- matrix(NA, nrow=n_boots, ncol=2)
 for(i in 1:n_boots){
   boot_inds <- bootstrap(x=1:nrow(pums), n=boot_size)
   boot_data <- pums[boot_inds,]
-  boot_reg <- lm(income ~ age + educ, data=boot_data)
+  boot_reg <- lm(log_income_clipped ~ age + educ, data=boot_data)
   boot_slopes <- coef(boot_reg)[2:3]
   boot_history[i,1] <- boot_slopes[1]
   boot_history[i,2] <- boot_slopes[2]
@@ -219,8 +224,12 @@ var_educ <- var(sim_history[,3])
 bias_sq_educ <- mse_educ-var_educ
 sampling_mse_educ <- mse(boot_history[,2], true_slopes[2])
 
-cat("Age","\nDP MSE: ", round(mse_age,2), "\nDP Variance: ", round(var_age,2), "\nDP Bias^2: ", round(bias_sq_age,2), "\nSampling MSE: ", round(sampling_mse_age,2))
-cat("Educ","\nDP MSE: ", round(mse_educ,2), "\nDP Variance: ", round(var_educ,2), "\nDP Bias^2: ", round(bias_sq_educ,2), "\nSampling MSE: ", round(sampling_mse_educ,2))
+cat("Age","\nDP MSE: ", mse_age, "\nDP Variance: ", var_age, "\nDP Bias^2: ", bias_sq_age, "\nSampling MSE: ", sampling_mse_age)
+cat("Educ","\nDP MSE: ", mse_educ, "\nDP Variance: ", var_educ, "\nDP Bias^2: ", bias_sq_educ, "\nSampling MSE: ", sampling_mse_educ)
 
-
+# save results
+q3_results <- data.frame("Metric"=c("DP MSE","DP Variance","DP Bias^2","Sampling MSE"),
+                         "Education"=c(mse_age,var_age,bias_sq_age,sampling_mse_age),
+                         "Age"=c(mse_educ,var_educ,bias_sq_educ,sampling_mse_educ))
+write.csv(q3_results, "q3_results.csv")
 
