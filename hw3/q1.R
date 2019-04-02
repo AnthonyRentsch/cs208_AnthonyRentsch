@@ -18,8 +18,7 @@ rlap = function(mu=0, b=1, size=1) {     # function borrowed from class
   return(draws)
 }
 
-trimmedMean <- function(x, d, epsilon) {
-  n <- length(x)
+trimmedMean <- function(x, n, d, epsilon) {
   scale <- d/(epsilon*0.9*n)
   quants <- quantile(x, c(0.05,0.95))
   x_trimmed <- x[x>quants[1] & x<quants[2]]
@@ -29,9 +28,9 @@ trimmedMean <- function(x, d, epsilon) {
 }
 
 # c
-exponentialPercentile <- function(x, t, epsilon){
+exponentialPercentile <- function(x, t, d, epsilon){
   t <- t/100
-  bins <- sort(x)
+  bins <- sort(c(x,d))
   nbins = length(bins)
 
   likelihoods <- rep(NA, nbins)
@@ -53,12 +52,10 @@ exponentialPercentile <- function(x, t, epsilon){
 }
 
 # d
-e3trimmedMean <- function(x, epsilon, tile_low=5, tile_high=95) {
+e3trimmedMean <- function(x, epsilon, n, d, tile_low=5, tile_high=95) {
   
-  n <- length(x)
-  
-  tile_low_value <- exponentialPercentile(x, t=tile_low, epsilon=epsilon/3)
-  tile_high_value <- exponentialPercentile(x, t=tile_high, epsilon=epsilon/3)
+  tile_low_value <- exponentialPercentile(x, t=tile_low, d=d, epsilon=epsilon/3)
+  tile_high_value <- exponentialPercentile(x, t=tile_high, d=d, epsilon=epsilon/3)
   x_trimmed <- x[x>tile_low_value & x<tile_high_value]
   mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
   
@@ -107,7 +104,7 @@ for(i in 1:n_pumas){
   
   for(j in 1:n_reps){
     laplace_noise <- laplaceMeanRelease(x=dat, lower=0, upper=1000000 , epsilon=1)
-    e3_trimmed <- e3trimmedMean(x=dat, epsilon=1)
+    e3_trimmed <- e3trimmedMean(x=dat, epsilon=1, n=length(dat), d=1000000)
     means_mat[row_ind,1] <- puma_region
     means_mat[row_ind,2] <- true_mean
     means_mat[row_ind,3] <- laplace_noise
@@ -143,8 +140,8 @@ q1_plot1
 dev.off()
 
 
-q1_plot2 <- ggplot(data=means_df, aes(x=reorder(factor(puma), -trimmed_mean))) + 
-  geom_boxplot(aes(y=trimmed_mean, shape="DP means"), outlier.shape=NA, alpha=0.7) + 
+q1_plot2 <- ggplot(data=means_df, aes(x=reorder(factor(puma), -exponential_mean))) + 
+  geom_boxplot(aes(y=exponential_mean, shape="DP means"), outlier.shape=NA, alpha=0.7) + 
   geom_point(aes(y=true_mean, colour="True mean"), alpha=0.7) +
   scale_colour_manual(values=c("red")) +
   labs(x="PUMA region", y="Mean income", title="Trimmed exponential mechanism") + 

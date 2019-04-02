@@ -34,11 +34,11 @@ rlap = function(mu=0, b=1, size=1) {     # function borrowed from class
   return(draws)
 }
 
-trimmedMean <- function(x, d, n, epsilon) {
+trimmedMean <- function(x, n, d, epsilon) {
   scale <- d/(epsilon*0.9*n)
   quants <- quantile(x, c(0.05,0.95))
   x_trimmed <- x[x>quants[1] & x<quants[2]]
-  mean_trimmed <- (1/(0.9*epsilon*n))*sum(x_trimmed)
+  mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
   mean_release <- mean_trimmed + rlap(mu=0,b=scale,size=1)
   return(mean_release)
 }
@@ -54,16 +54,16 @@ $$u = - \mid n*t - \# below \mid$$
 
 where $n$ is the number of observations, $t \in [0,100]$ is the percentile, and $\# below$ is the number of observations with values less than or equal to the value of the current bin. The value of this utility function is close to $0$ for bins that are close to the true percentile and is increasingly negative for bins that are further away from the true percentile.
 
-These utility values are then turned into likelihoods using the exponential mechanism $\frac{e^{\epsilon*u}}{2}$ and are further weighted by the number of values between any two successive bins. The resulting bin width-weighted likelihoods are turned into probabilities of being the actual percentile.
+These utility values are then turned into likelihoods using the exponential mechanism $\frac{e^{\epsilon u}}{2}$ and are further weighted by the number of values between any two successive bins. The resulting bin width-weighted likelihoods are turned into probabilities of being the actual percentile.
 
 To produce our noisy estimate of the percentile, we randomly sample a number from the standard uniform distribution and consider the first bin for which the cumulative sum of the probabilities is greater than this random number as the target true bin. For the final step, a number is sampled from the interval between this number and the next largest number and returned as the DP estimate of the true percentile.
 
 Code for the mechanism is below.
 
 ```
-exponentialPercentile <- function(x, t, epsilon){
+exponentialPercentile <- function(x, t, d, epsilon){
   t <- t/100
-  bins <- sort(x)
+  bins <- sort(c(x,d))
   nbins = length(bins)
 
   likelihoods <- rep(NA, nbins)
@@ -88,12 +88,10 @@ exponentialPercentile <- function(x, t, epsilon){
 *(d)* 
 
 ```
-e3trimmedMean <- function(x, epsilon, tile_low=5, tile_high=95) {
+e3trimmedMean <- function(x, epsilon, n, d, tile_low=5, tile_high=95) {
   
-  n <- length(x)
-  
-  tile_low_value <- exponentialPercentile(x, t=tile_low, epsilon=epsilon/3)
-  tile_high_value <- exponentialPercentile(x, t=tile_high, epsilon=epsilon/3)
+  tile_low_value <- exponentialPercentile(x, t=tile_low, d=d, epsilon=epsilon/3)
+  tile_high_value <- exponentialPercentile(x, t=tile_high, d=d, epsilon=epsilon/3)
   x_trimmed <- x[x>tile_low_value & x<tile_high_value]
   mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
   
@@ -103,15 +101,15 @@ e3trimmedMean <- function(x, epsilon, tile_low=5, tile_high=95) {
 }
 ```
 
-*(e)* 
+*(e)* My intuition is that this mechanism is $\epsilon$-DP. First, since we are combining the results of three $\frac{\epsilon}{3}$-DP mechanisms, we can say that the resulting mechanism is $\epsilon$-DP. Second, the scale of the Laplace noise is appropriate here, as the sensitivity of our data is proportional to the range of our data ($GS_q = \frac{\hat{P_{.95}}-\hat{P_{.05}}}{n}$) once we clamp to the estimated percentiles. Finally, the mechanism in (b) failed to meet DP because we composed a mechanism that was $\epsilon$-DP with a transformation that leaked information about the underlying data. In this mechanism, the Winsorization step is not leaking information in the same way since the percentiles are being estimated in a DP fashion. 
 
-- yes
-- $GS_q = \frac{\hat{P_{.95}}-\hat{P_{.05}}}{n}$ of the new, winsorized data
-- by composition, adding up three $\frac{\epsilon}{3}$-DP methods gets us to $\epsilon$-DP
-
-*(f)* As the plots below show, the Laplace mechanism gives unbiased results for the actual mean while the trimmed exponential mechanism means are downwardly biased. In this case, it appears pretty obvious that the ordinary Laplace mechanism provides better performance. That is likely because the data is heavily right-skewed so that the ordinary Laplace mechanism (which only trims the data to a range based on the user's knowledge of the data domain) does not remove much of the data before computing a noisy estimate while the trimmed exponential mechanism clamps data to the $5^{th}$ and $95^{th}$ percentile, which will be design push the right tail of the income distribution downward, which will downwardly biases the estimate of the mean. In general, I would expect that the Laplace mechanism would perform better than the trimmed exponential mechanism for heavily skewed data like the PUMS income data.
+*(f)* As the plots below show, the Laplace mechanism gives unbiased results for the actual mean while the trimmed exponential mechanism means are downwardly biased. In this case, it appears pretty obvious that the ordinary Laplace mechanism provides better performance. That is likely because the data is heavily right-skewed so that the ordinary Laplace mechanism (which only trims the data to a range based on the user's knowledge of the data domain) does not remove much of the data before computing a noisy estimate while the trimmed exponential mechanism clamps data to the $5^{th}$ and $95^{th}$ percentile, which will by design push the right tail of the income distribution downward, which will downwardly bias the estimate of the mean. In general, I would expect that the Laplace mechanism would perform better than the trimmed exponential mechanism for heavily skewed data like the PUMS income data.
 
 On the other hand, I would expect the opposite to be true if the data was normally distributed but the user provided clip values were not symmetric around the mean of the distribution so the mean estimate would be biased in the direction in which the user's data domain varied from the empirical data range. By design, the percentiles that the trimmed exponential mechanism clamps to will be more symmetric around the center so the estimates of the means from that mechanism will be unbiased. 
+
+One further observation: in the the ordinary Laplace mechanism, we add noise proportional to the user provided value of $D$, i.e., the maximum value of the data domain. As such, if we increase $D$ we will add more noise to the released mean and would observe much more variance between our estimates and the true means for each PUMA. Changing the value of $D$ does not affect the noise added by the trimmed exponential mechanism in the same way, so increasing $D$ for this mechanism will not affect the variance of our results.
+
+Thinking about the utility of the trimmed exponential mechanism for this dataset, if we took the log of the income variable, we would expect the mechanism to produce much more unbiased results since this transformation would remove the skew that led to the downwardly biased results. 
  
 \begin{center}
 \includegraphics[width=5in]{~/Desktop/Harvard/S19/cs208/cs208_AnthonyRentsch/hw3/plots/q1_plot1.pdf}
@@ -140,7 +138,7 @@ The "optimal" composition theorem strictly improves upon the standard deviation 
 
 ## Question 3
 
-Here, I examine the utility of synthetic data generated using the DP histogram approach. To do this, I (1) generate synthetic data by adding Laplace distributed noise to the $age$ x  $education$ x $income$ bins counts for the PUMS data, (2) sample 10,000 synthetic observations based on these bin counts, (3) estimate a regression model relating age and education to income, and (4) compute the mean squared error, squared bias, and variance of the coefficient estimates for age, education, and the intercept. To get a sense of the expected behavior of this procedure, I repeat this process 10 times (performing it many more times was too computationally expensive).
+Here, I examine the utility of synthetic data generated using the DP histogram approach. To do this, I (1) generate synthetic data by adding Laplace distributed noise to the $age$ x  $education$ x $income$ bin counts for the PUMS data, (2) sample 10,000 synthetic observations based on these bin counts, (3) estimate a regression model relating age and education to income, and (4) compute the mean squared error, squared bias, and variance of the coefficient estimates for age, education, and the intercept. To get a sense of the expected behavior of this procedure, I repeat this process 10 times (performing it many more times was too computationally expensive).
 
 As a pre-process to this whole procedure, I clip the income variable to 1 so that I can work with the log of the income. I then use the log of the clipped income for the remainder of the problem, i.e., to compute the sensitive regression on the entire dataset and to produce the histogram release and corresponding synthetic data.
 
@@ -156,7 +154,11 @@ knitr::kable(q3_results[,2:5])
 
 ## BONUS
 
+One possible idea would be to include a full example tutorial for the interface. For instance, a potential user could be walked through, step-by-step how to carry out an analysis for an example dataset (like the California Census data). Right now the interface does a nice job of explaining what is happening to users and requiring that they input domain knowledge and specify their privacy budget beforehand (with the option of adjusting things after they begin their analysis). I find that a full tutorial is often helpful for me when transitioning over to new services. 
 
+This semester I am taking a class on the science of behavior change (aka behavioral economics). We talk a lot about choice architecture and I definitely see some of the principles we talk about in practice here, like requiring forced choice, anchoring people's choice of $\epsilon$ with information about what type of data requires what approximate value of $\epsilon$, and adding friction when users try to do undesirable things (like set $\epsilon >> 1$). I think forced choice makes sense here because you want to force users to be really thoughtful about what they want to do.but  However, it might be worthwhile to also set defaults that are skewed toward preserving privacy, since default options tend to be very sticky. 
+
+People like Todd Rogers at the Harvard Kennedy School might be good resources for further development of the tool from a behavioral user design perspective.
 
 ## Appendix
 
@@ -182,8 +184,7 @@ rlap = function(mu=0, b=1, size=1) {     # function borrowed from class
   return(draws)
 }
 
-trimmedMean <- function(x, d, epsilon) {
-  n <- length(x)
+trimmedMean <- function(x, n, d, epsilon) {
   scale <- d/(epsilon*0.9*n)
   quants <- quantile(x, c(0.05,0.95))
   x_trimmed <- x[x>quants[1] & x<quants[2]]
@@ -193,9 +194,9 @@ trimmedMean <- function(x, d, epsilon) {
 }
 
 # c
-exponentialPercentile <- function(x, t, epsilon){
+exponentialPercentile <- function(x, t, d, epsilon){
   t <- t/100
-  bins <- sort(x)
+  bins <- sort(c(x,d))
   nbins = length(bins)
 
   likelihoods <- rep(NA, nbins)
@@ -217,12 +218,10 @@ exponentialPercentile <- function(x, t, epsilon){
 }
 
 # d
-e3trimmedMean <- function(x, epsilon, tile_low=5, tile_high=95) {
+e3trimmedMean <- function(x, epsilon, n, d, tile_low=5, tile_high=95) {
   
-  n <- length(x)
-  
-  tile_low_value <- exponentialPercentile(x, t=tile_low, epsilon=epsilon/3)
-  tile_high_value <- exponentialPercentile(x, t=tile_high, epsilon=epsilon/3)
+  tile_low_value <- exponentialPercentile(x, t=tile_low, d=d, epsilon=epsilon/3)
+  tile_high_value <- exponentialPercentile(x, t=tile_high, d=d, epsilon=epsilon/3)
   x_trimmed <- x[x>tile_low_value & x<tile_high_value]
   mean_trimmed <- (1/(0.9*n))*sum(x_trimmed)
   
@@ -271,7 +270,7 @@ for(i in 1:n_pumas){
   
   for(j in 1:n_reps){
     laplace_noise <- laplaceMeanRelease(x=dat, lower=0, upper=1000000 , epsilon=1)
-    e3_trimmed <- e3trimmedMean(x=dat, epsilon=1)
+    e3_trimmed <- e3trimmedMean(x=dat, epsilon=1, n=length(dat), d=1000000)
     means_mat[row_ind,1] <- puma_region
     means_mat[row_ind,2] <- true_mean
     means_mat[row_ind,3] <- laplace_noise
@@ -307,8 +306,8 @@ q1_plot1
 dev.off()
 
 
-q1_plot2 <- ggplot(data=means_df, aes(x=reorder(factor(puma), -trimmed_mean))) + 
-  geom_boxplot(aes(y=trimmed_mean, shape="DP means"), outlier.shape=NA, alpha=0.7) + 
+q1_plot2 <- ggplot(data=means_df, aes(x=reorder(factor(puma), -exponential_mean))) + 
+  geom_boxplot(aes(y=exponential_mean, shape="DP means"), outlier.shape=NA, alpha=0.7) + 
   geom_point(aes(y=true_mean, colour="True mean"), alpha=0.7) +
   scale_colour_manual(values=c("red")) +
   labs(x="PUMA region", y="Mean income", title="Trimmed exponential mechanism") + 
