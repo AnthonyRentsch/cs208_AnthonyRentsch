@@ -1,0 +1,53 @@
+---
+title: "cs208 HW 3"
+author: "Anthony Rentsch"
+date: "4/16/2019"
+output: pdf_document
+urlcolor: blue
+---
+
+## Question 1
+
+*(a)*
+- local: randomized response + bias correction + pj's
+- centralized: laplace noise for each pj
+- conjunction matrix for everything, especially for local so we do RR on y
+
+For the local case, we a conjunction $x_i = (x_i[j] = 0, y_i = 1)$ and a local randomizer $Q(x_i)$ as:
+$$
+Q(x_i) = \left\{
+        \begin{array}{ll}
+            1 & w.p. \frac{e^{\epsilon}}{e^{\epsilon}+1} \\
+            0 & w.p. \frac{1}{e^{\epsilon}+1}
+        \end{array}
+    \right.
+$$
+
+However, we will have to correct the output of this randomizer in the aggregate, as it will be biased in expectation.
+
+?????
+
+$$
+\begin{aligned}
+  E[Q(x_i)] &= x_i\frac{e^{\epsilon}}{e^{\epsilon}+1} + (1-x_i)\frac{1}{e^{\epsilon}+1} \\
+  &= x_i\frac{e^{\epsilon}-1}{e^{\epsilon}+1} + \frac{1}{e^{\epsilon}+1}
+\end{aligned}
+$$
+
+Thus, our correction will need a multiplicative and an additive term. The appropriate terms are
+$$
+\begin{aligned}
+  c &= \frac{e^{\epsilon}+1}{e^{\epsilon}-1} \\
+  d &= \frac{-1}{e^{\epsilon}-1} \\
+  \\
+  E[c*Q(x_i) + d] &= \frac{e^{\epsilon}+1}{e^{\epsilon}-1}\left[x_i\frac{e^{\epsilon}-1}{e^{\epsilon}+1} + \frac{1}{e^{\epsilon}+1}\right] - \frac{1}{e^{\epsilon}-1} \\
+  &= x_i + \frac{1}{e^{\epsilon}-1} - \frac{1}{e^{\epsilon}-1} \\
+  &= x_i
+\end{aligned}
+$$
+
+*(b)*
+
+
+
+*(c)*
