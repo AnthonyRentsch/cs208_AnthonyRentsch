@@ -8,7 +8,6 @@ require(plyr); require(dplyr); require(ggplot2)
 test_data <- read.csv("hw4testdata.csv")
 test_data_matrix <- as.matrix(test_data)
 pums <- read.csv("CAPUMS5full.csv")
-pums_matrix <- as.matrix(pums)
 
 # a
 ## general ##
@@ -66,15 +65,20 @@ SQcentralized <- function(conjunction, t, epsilon=1) {
 localRelease <- function(x, values=c(0,1), epsilon){     # function borrowed from class
   draw <- runif(n=1, min=0, max=1)
   cutoff <- 1/(1+exp(epsilon))
-  return_val <- ifelse(draw < cutoff, !values %in% x, x)
+  if(draw < cutoff){
+    return_val <- values[!values %in% x]
+  }
+  else{
+    return_val <- x
+  }
   return(return_val) 
 }
 
 correction <- function(release, epsilon){     # function updated from class
-  # something is wrong here?
+  n <- length(release)
   mulitiplicative <- (exp(epsilon) + 1)/(exp(epsilon) - 1)
-  additive <- -1/(exp(epsilon) - 1)
-  expectation <- sum(release*mulitiplicative + additive)/length(release)
+  additive <- -n/(exp(epsilon) - 1)
+  expectation <- (sum(release)*mulitiplicative + additive)/n
   return(expectation)
 }
 
@@ -93,7 +97,7 @@ SQlocalized <- function(conjunction, t, epsilon=1, negative_val=0, positive_val=
   
   # pj calculation (bias correction happens inside here)
   for(j in 1:d) {
-    cur_pj <- calc_pj(conjunction=conjunction[,j], epsilon=epsilon/d, type="l")
+    cur_pj <- calc_pj(conjunction=new_conjunction[,j], epsilon=epsilon/d, type="l")
     if(cur_pj < t) {
       attributes <- c(attributes, j)
     }
