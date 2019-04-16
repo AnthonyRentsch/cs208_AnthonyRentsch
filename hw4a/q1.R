@@ -120,3 +120,80 @@ pums_conj_mat <- get_conjunction_matrix(pums_x, pums_y)
 names(pums[SQcentralized(conjunction=pums_conj_mat, t=0.01, epsilon=1)])
 names(pums[SQlocalized(conjunction=pums_conj_mat, t=0.01, epsilon=1)])
 
+## look at FPR and FNR ##
+bootstrap <- function(x, n){     # function updated from class
+  index <- sample(x=1:nrow(x), size=n, replace=TRUE) 
+  return(x[index,])
+}
+
+return_rates <- function(predictors, y_true){
+  d <- ncol(predictors)
+  if(d > 1){
+    y_pred <- ifelse(rowSums(predictors) == d, 1, 0)
+  }
+  else{
+    y_pred <- ifelse(predictors == d, 1, 0)
+  }
+  fpr <- mean(y_pred==1 & y_true==0)
+  fnr <- mean(y_pred==0 & y_true==1)
+  return(list(fpr=fpr, fnr=fnr))
+}
+
+ns <- seq(from=100, to=100000, length.out=20)
+num_boots <- 10
+predictors <- c("sex","married","black","asian","collegedegree","employed","militaryservice",
+                "uscitizen","disability","englishability")
+thresh <- 0.1
+eps <- 1
+
+rates <- matrix(NA, nrow=length(ns), ncol=5)
+i <- 1
+for(n in ns){
+  central_fprs <- c()
+  central_fnrs <- c()
+  local_fprs <- c()
+  local_fnrs <- c()
+  
+  new_data <- bootstrap(x=pums, n=n)
+  new_conj_mat <- get_conjunction_matrix(new_data[,predictors], new_data$targetted)
+  
+  for(boot in 1:num_boots){
+    
+    central_res <- names(pums[SQcentralized(conjunction=new_conj_mat, t=thresh, epsilon=eps)])
+    local_res <- names(pums[SQlocalized(conjunction=new_conj_mat, t=thresh, epsilon=eps)])
+    
+    central_predictor_mat <- as.matrix(new_data[,central_res])
+    local_predictor_mat <- as.matrix(new_data[,local_res])
+    central_rates <- return_rates(predictors=central_predictor_mat, y_true=new_data$targetted)
+    local_rates <- return_rates(predictors=local_predictor_mat, y_true=new_data$targetted)
+    
+    central_fprs <- c(central_fprs, central_rates$fpr)
+    central_fnrs <- c(central_fnrs, central_rates$fnr)
+    local_fprs <- c(local_fprs, local_rates$fpr)
+    local_fnrs <- c(local_fnrs, local_rates$fnr)
+  }
+  
+  rates[i, 1] <- n
+  rates[i, 2] <- mean(central_fprs)
+  rates[i, 3] <- mean(central_fnrs)
+  rates[i, 4] <- mean(local_fprs)
+  rates[i, 5] <- mean(local_fnrs)
+  i = i + 1
+}
+rates_df <- as.data.frame(rates)
+names(rates_df) <- c("n", "central_fpr", "central_fnr", "local_fpr", "local_fnr")
+
+q1_plot <- ggplot(rates_df) +
+  geom_line(aes(x=n, y=central_fpr, colour="Central", lty="False positive"), size=1.2) + 
+  geom_line(aes(x=n, y=central_fnr, colour="Central", lty="False negative"), size=1.2) + 
+  geom_line(aes(x=n, y=local_fpr, colour="Local", lty="False positive"), size=1.2) + 
+  geom_line(aes(x=n, y=local_fnr, colour="Local", lty="False negative"), size=1.2) +
+  scale_colour_brewer(palette="Set1") +
+  theme_bw() +
+  labs(x="Sample size", y="Rate") +
+  theme(legend.title=element_blank())
+pdf("plots/q1_plot.pdf", width=8, height=8)
+q1_plot
+dev.off()
+
+
