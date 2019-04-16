@@ -111,15 +111,12 @@ SQcentralized(test_conj_mat, t=0.01, epsilon=1)
 SQlocalized(conjunction=test_conj_mat, t=0.01, epsilon=1)
 
 
-
 # c
 pums_x <- pums[,c("sex","married","black","asian","collegedegree","employed","militaryservice",
                   "uscitizen","disability","englishability")]
 pums_y <- pums$targetted
 pums_conj_mat <- get_conjunction_matrix(pums_x, pums_y)
 
-names(pums[SQcentralized(conjunction=pums_conj_mat, t=0.0001, epsilon=1)])
-names(pums[SQlocalized(conjunction=pums_conj_mat, t=0.0001, epsilon=1)])
-
-
+names(pums[SQcentralized(conjunction=pums_conj_mat, t=0.01, epsilon=1)])
+names(pums[SQlocalized(conjunction=pums_conj_mat, t=0.01, epsilon=1)])
 
