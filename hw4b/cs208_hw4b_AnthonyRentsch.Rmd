@@ -68,7 +68,7 @@ The classification error rate does not seem to shrink as drastically This is lik
 
 ## Appendix
 
-My code can also be found in my [Github repository]().
+My code can also be found in my [Github repository](https://github.com/AnthonyRentsch/cs208_AnthonyRentsch/tree/master/hw4b).
 
 ```
 rm(list = ls())
@@ -219,5 +219,3 @@ pdf("plots/q2_plot_error.pdf", width=8, height=8)
 q2_plot_error
 dev.off()
 ```
-
-
